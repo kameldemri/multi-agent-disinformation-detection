@@ -35,14 +35,14 @@ Each agent has a separate responsibility and will be developed independently bef
 
 ```text
 agents/
-  agent1_naive_bayes/
-  agent2_rnn/
-  agent3_logistic_regression/
+    agent1_naive_bayes/
+    agent2_rnn/
+    agent3_logistic_regression/
 coordination/
 data/
-  raw/
-  processed/
-  samples/
+    raw/
+    processed/
+    samples/
 docs/
 tests/
 ```
@@ -76,6 +76,71 @@ See [`docs/dataset-notes.md`](docs/dataset-notes.md) for further details.
 6. Run integration tests and prepare the demonstration.
 
 Development is organized through Git and GitHub. Each team member should work on their assigned component and communicate interface changes before integration.
+
+## Development Setup
+
+### Prerequisites
+
+- Git
+- Python 3.12
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/kameldemri/multi-agent-disinformation-detection.git
+cd multi-agent-disinformation-detection
+```
+
+Create a virtual environment using Python 3.12:
+
+**Linux / macOS:**
+
+```bash
+python3.12 -m venv .venv
+```
+
+**Windows (PowerShell):**
+
+```powershell
+py -3.12 -m venv .venv
+```
+
+Activate the virtual environment:
+
+**Linux / macOS:**
+
+```bash
+source .venv/bin/activate
+```
+
+**Windows (PowerShell):**
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Install the project dependencies:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Verify the Python version:
+
+```bash
+python --version
+```
+
+It should report Python 3.12.x.
+
+### Environment Guidelines
+
+- Always activate the virtual environment before working on the project.
+- Install project dependencies using `requirements.txt`.
+- Do not commit the `.venv/` directory.
+- If you add or modify dependencies, update `requirements.txt` and communicate the changes to the team.
 
 ## Data and Model Artifacts
 
