@@ -30,9 +30,13 @@ env/
 # ==========================================
 # Datasets
 # ==========================================
+# Raw datasets
 data/raw/*
-!data/raw/.gitkeep
+!data/raw/*/
+data/raw/*/*
+!data/raw/*/.gitkeep
 
+# Processed datasets
 data/processed/*
 !data/processed/.gitkeep
 
