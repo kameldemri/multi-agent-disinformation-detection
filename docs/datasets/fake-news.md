@@ -45,7 +45,7 @@
 - Suitable for a first Naive Bayes baseline (text column, two balanced classes).
 - Limits: news articles, not short social-media posts; the model may learn the source or style instead of the truth.
 
-## Suitability and Decision
+## 9. Suitability and Decision
 
 ### Why the Fake News dataset does not fit the Agent 1 task as specified
 
