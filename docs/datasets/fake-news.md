@@ -44,3 +44,20 @@
 ## 8. Suitability and limitations
 - Suitable for a first Naive Bayes baseline (text column, two balanced classes).
 - Limits: news articles, not short social-media posts; the model may learn the source or style instead of the truth.
+
+## 9. Suitability and Decision
+
+### Why the Fake News dataset does not fit the Agent 1 task as specified
+
+Agent 1 is a lexical spam filter, but this dataset has no spam labels (only fake vs. true articles), so a spam filter can be neither trained nor evaluated on it. 
+Secondary limits: long news articles instead of short posts, and source bias ("Reuters" in 99.8% of true vs. 1.3% of fake articles; `subject` and `date` unreliable).
+
+### Why the Twitter Bot Detection (Goyal) dataset is not used for Agent 1
+
+Its `Bot Label` describes accounts, not messages, and according to the Agent 2 EDA each account appears only once, with a single tweet. It therefore provides no spam-specific labels and no per-account tweet history.
+
+### Decision
+
+- The Fake News dataset is **not used** for Agent 1.
+- Agent 1 is to be trained on **Cresci-2017** (Kaggle copy: hashemalsalmi/cresci-2017), a Twitter dataset of genuine accounts and spambot accounts with their tweets.
+
