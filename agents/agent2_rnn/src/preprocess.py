@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
+
 
 # ============================================================
 # 1. PATHS AND CONFIGURATION
@@ -214,3 +216,137 @@ def prepare_tweet_data() -> None:
 
 if __name__ == "__main__":
     prepare_tweet_data()
+
+
+
+def load_accounts_from_processed_file(file_path: Path) -> set[str]:
+    """
+    Read only user_id from a processed tweet file.
+    Process in chunks to avoid loading millions of tweets into RAM.
+    """
+    account_ids = set()
+
+    for chunk in pd.read_csv(
+        file_path,
+        usecols=["user_id"],
+        dtype={"user_id": "string"},
+        chunksize=CHUNK_SIZE,
+    ):
+        account_ids.update(chunk["user_id"].dropna().tolist())
+
+    return account_ids
+
+
+def create_account_splits():
+    """
+    Create reproducible train/validation/test assignments.
+    Each account appears exactly once.
+    """
+
+    output_dir = PROCESSED_DATA_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    split_file = output_dir / "account_splits.csv"
+
+    # Avoid accidentally replacing an existing experiment split.
+    if split_file.exists():
+        print(f"Account splits already exist: {split_file}")
+        print("Keeping the existing assignments.")
+        return
+
+    genuine_file = output_dir / "genuine_tweets.csv"
+    spambot_file = output_dir / "spambot_tweets.csv"
+
+    if not genuine_file.exists() or not spambot_file.exists():
+        raise FileNotFoundError(
+            "Processed tweet files are missing. Run Phase 1 first."
+        )
+
+    print("\n" + "=" * 60)
+    print("AGENT 2 - PHASE 2: ACCOUNT-LEVEL SPLITTING")
+    print("=" * 60)
+
+    # Recover only accounts that actually have usable tweets.
+    genuine_ids = load_accounts_from_processed_file(genuine_file)
+    spambot_ids = load_accounts_from_processed_file(spambot_file)
+
+    # An account must not belong to both classes.
+    overlap = genuine_ids.intersection(spambot_ids)
+
+    if overlap:
+        raise ValueError(
+            f"Found {len(overlap)} account IDs in both classes."
+        )
+
+    print(f"Genuine accounts with tweets: {len(genuine_ids)}")
+    print(f"Spambot accounts with tweets: {len(spambot_ids)}")
+
+    # Build a small account-level dataset, not a tweet-level dataset.
+    accounts = pd.DataFrame(
+        [
+            {"user_id": user_id, "label": 0}
+            for user_id in sorted(genuine_ids)
+        ]
+        +
+        [
+            {"user_id": user_id, "label": 1}
+            for user_id in sorted(spambot_ids)
+        ]
+    )
+
+    # First split: 70% training, 30% temporary.
+    train_accounts, temporary_accounts = train_test_split(
+        accounts,
+        test_size=0.30,
+        random_state=42,
+        stratify=accounts["label"],
+    )
+
+    # Second split: divide the temporary 30% equally.
+    validation_accounts, test_accounts = train_test_split(
+        temporary_accounts,
+        test_size=0.50,
+        random_state=42,
+        stratify=temporary_accounts["label"],
+    )
+
+    # Attach the split name to each account.
+    train_accounts = train_accounts.copy()
+    validation_accounts = validation_accounts.copy()
+    test_accounts = test_accounts.copy()
+
+    train_accounts["split"] = "train"
+    validation_accounts["split"] = "validation"
+    test_accounts["split"] = "test"
+
+    # Combine and save the assignments.
+    splits = pd.concat(
+        [train_accounts, validation_accounts, test_accounts],
+        ignore_index=True,
+    )
+
+    splits = splits.sort_values("user_id").reset_index(drop=True)
+
+    # Basic integrity checks.
+    if splits["user_id"].duplicated().any():
+        raise ValueError("An account appears in more than one split.")
+
+    if len(splits) != len(accounts):
+        raise ValueError("Some accounts are missing from the splits.")
+
+    splits.to_csv(split_file, index=False)
+
+    print("\nSplit sizes:")
+    print(splits["split"].value_counts())
+
+    print("\nClass distribution per split:")
+    print(
+        pd.crosstab(
+            splits["split"],
+            splits["label"],
+            margins=True,
+        )
+    )
+
+    print(f"\nTotal accounts: {len(splits)}")
+    print(f"Saved assignments to: {split_file}")
