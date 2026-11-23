@@ -7,6 +7,9 @@ import pandas as pd
 
 from sklearn.model_selection import train_test_split
 
+import sqlite3
+from datetime import datetime, timezone
+
 
 # ============================================================
 # 1. PATHS AND CONFIGURATION
@@ -350,3 +353,652 @@ def create_account_splits():
 
     print(f"\nTotal accounts: {len(splits)}")
     print(f"Saved assignments to: {split_file}")
+
+
+
+def create_temporal_database():
+    """
+    Create the temporary SQLite database and its import tracking table.
+    """
+
+    db_path = PROCESSED_DATA_DIR / "temporal_processing.db"
+    PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+    with sqlite3.connect(db_path) as connection:
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS tweets (
+                user_id TEXT NOT NULL,
+                tweet_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                created_at_utc INTEGER NOT NULL,
+                label INTEGER NOT NULL
+            )
+        """)
+
+        # Prevent duplicate tweet IDs.
+        connection.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_tweet_id
+            ON tweets (tweet_id)
+        """)
+
+        # Track completed CSV imports.
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS import_log (
+                file_name TEXT PRIMARY KEY,
+                label INTEGER NOT NULL,
+                rows_read INTEGER NOT NULL,
+                inserted INTEGER NOT NULL,
+                invalid_timestamps INTEGER NOT NULL,
+                invalid_rows INTEGER NOT NULL,
+                completed_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Build the chronological index after importing the data.
+        connection.execute("""
+            DROP INDEX IF EXISTS idx_tweets_temporal
+        """)
+
+    print(f"SQLite database ready at: {db_path}")
+
+
+
+
+def convert_twitter_timestamp(value: str) -> int:
+    """
+    Convert Twitter's original timestamp into UTC Unix seconds.
+    Example: Wed Oct 10 20:19:24 +0000 2018
+    """
+
+    parsed = datetime.strptime(
+        value,
+        "%a %b %d %H:%M:%S %z %Y"
+    )
+
+    return int(parsed.timestamp())
+
+
+
+def import_tweet_file_to_sqlite(
+    connection: sqlite3.Connection,
+    file_path: Path,
+    label: int,
+):
+    """
+    Import one processed tweet CSV into SQLite using chunks.
+    """
+
+    print(f"\nImporting: {file_path.name}")
+
+    total_read = 0
+    total_inserted = 0
+    invalid_timestamps = 0
+    invalid_rows = 0
+
+    insert_query = """
+        INSERT OR IGNORE INTO tweets (
+            user_id,
+            tweet_id,
+            created_at,
+            created_at_utc,
+            label
+        )
+        VALUES (?, ?, ?, ?, ?)
+    """
+
+    for chunk in pd.read_csv(
+        file_path,
+        usecols=["user_id", "id", "created_at"],
+        dtype={
+            "user_id": "string",
+            "id": "string",
+            "created_at": "string",
+        },
+        chunksize=CHUNK_SIZE,
+    ):
+
+        total_read += len(chunk)
+        records = []
+
+        for row in chunk.itertuples(index=False):
+
+            user_id = row.user_id
+            tweet_id = row.id
+            created_at = row.created_at
+
+            if pd.isna(user_id) or pd.isna(tweet_id) or pd.isna(created_at):
+                invalid_rows += 1
+                continue
+
+            try:
+                timestamp_utc = convert_twitter_timestamp(created_at)
+            except (ValueError, TypeError, OverflowError):
+                invalid_timestamps += 1
+                continue
+
+            records.append(
+                (
+                    str(user_id),
+                    str(tweet_id),
+                    str(created_at),
+                    timestamp_utc,
+                    label,
+                )
+            )
+
+        if records:
+            before = connection.total_changes
+
+            connection.executemany(insert_query, records)
+            connection.commit()
+
+            after = connection.total_changes
+            total_inserted += after - before
+
+        print(
+            f"Processed {total_read:,} rows | "
+            f"Inserted {total_inserted:,} tweets"
+        )
+
+    print(f"Finished: {file_path.name}")
+    print(f"Rows read: {total_read:,}")
+    print(f"Tweets inserted: {total_inserted:,}")
+    print(f"Invalid timestamps: {invalid_timestamps:,}")
+    print(f"Invalid rows: {invalid_rows:,}")
+
+    return {
+        "read": total_read,
+        "inserted": total_inserted,
+        "invalid_timestamps": invalid_timestamps,
+        "invalid_rows": invalid_rows,
+    }
+
+
+
+def import_all_tweets_to_sqlite():
+    """
+    Import both tweet datasets into SQLite.
+    Completed files are skipped on subsequent runs.
+    """
+
+    create_temporal_database()
+
+    db_path = PROCESSED_DATA_DIR / "temporal_processing.db"
+
+    files = [
+        (PROCESSED_DATA_DIR / "genuine_tweets.csv", 0),
+        (PROCESSED_DATA_DIR / "spambot_tweets.csv", 1),
+    ]
+
+    with sqlite3.connect(db_path) as connection:
+
+        for file_path, label in files:
+
+            if not file_path.exists():
+                raise FileNotFoundError(
+                    f"Missing processed file: {file_path}"
+                )
+
+            completed = connection.execute(
+                """
+                SELECT 1 FROM import_log
+                WHERE file_name = ?
+                """,
+                (file_path.name,),
+            ).fetchone()
+
+            if completed:
+                print(f"\nAlready imported: {file_path.name}")
+                continue
+
+            stats = import_tweet_file_to_sqlite(
+                connection,
+                file_path,
+                label,
+            )
+
+            connection.execute(
+                """
+                INSERT INTO import_log (
+                    file_name,
+                    label,
+                    rows_read,
+                    inserted,
+                    invalid_timestamps,
+                    invalid_rows
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    file_path.name,
+                    label,
+                    stats["read"],
+                    stats["inserted"],
+                    stats["invalid_timestamps"],
+                    stats["invalid_rows"],
+                ),
+            )
+
+            connection.commit()
+
+        # Create the chronological index after importing.
+        connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_tweets_temporal
+            ON tweets (user_id, created_at_utc, tweet_id)
+        """)
+
+        print("\n" + "=" * 55)
+        print("SQLITE IMPORT SUMMARY")
+        print("=" * 55)
+
+        for label, count in connection.execute(
+            """
+            SELECT label, COUNT(*)
+            FROM tweets
+            GROUP BY label
+            ORDER BY label
+            """
+        ):
+            class_name = "Genuine" if label == 0 else "Spambot"
+            print(f"{class_name}: {count:,} tweets")
+
+        total = connection.execute(
+            "SELECT COUNT(*) FROM tweets"
+        ).fetchone()[0]
+
+        print(f"\nTotal tweets in database: {total:,}")
+
+
+
+def verify_temporal_database():
+    """
+    Verify SQLite tweet records against the account-level splits.
+    """
+
+    db_path = PROCESSED_DATA_DIR / "temporal_processing.db"
+    split_path = PROCESSED_DATA_DIR / "account_splits.csv"
+
+    splits = pd.read_csv(
+        split_path,
+        dtype={"user_id": "string"},
+    )
+
+    with sqlite3.connect(db_path) as connection:
+
+        # Check imported tweet counts.
+        print("\nTweet counts by class:")
+
+        counts = pd.read_sql_query(
+            """
+            SELECT label, COUNT(*) AS tweet_count
+            FROM tweets
+            GROUP BY label
+            ORDER BY label
+            """,
+            connection,
+        )
+
+        print(counts.to_string(index=False))
+
+        # Get one record per account.
+        accounts = pd.read_sql_query(
+            """
+            SELECT
+                user_id,
+                MIN(label) AS min_label,
+                MAX(label) AS max_label,
+                COUNT(*) AS tweet_count
+            FROM tweets
+            GROUP BY user_id
+            """,
+            connection,
+            dtype={"user_id": "string"},
+        )
+
+        # Check that each account has only one label.
+        inconsistent_labels = accounts[
+            accounts["min_label"] != accounts["max_label"]
+        ]
+
+        # Compare SQLite accounts with account_splits.csv.
+        comparison = accounts.merge(
+            splits[["user_id", "label", "split"]],
+            on="user_id",
+            how="outer",
+            indicator=True,
+        )
+
+        missing_accounts = comparison[
+            comparison["_merge"] != "both"
+        ]
+
+        label_mismatches = comparison[
+            (comparison["_merge"] == "both")
+            & (comparison["min_label"] != comparison["label"])
+        ]
+
+        # Check timestamp range.
+        timestamp_range = connection.execute(
+            """
+            SELECT
+                MIN(created_at_utc),
+                MAX(created_at_utc)
+            FROM tweets
+            """
+        ).fetchone()
+
+        # Check completed imports.
+        imports = pd.read_sql_query(
+            "SELECT * FROM import_log",
+            connection,
+        )
+
+    print("\nAccount verification:")
+    print(f"Accounts in SQLite: {len(accounts):,}")
+    print(f"Accounts in split CSV: {len(splits):,}")
+    print(f"Inconsistent account labels: {len(inconsistent_labels)}")
+    print(f"Missing or unexpected accounts: {len(missing_accounts)}")
+    print(f"Label mismatches: {len(label_mismatches)}")
+
+    print("\nTimestamp range (UTC Unix seconds):")
+    print(timestamp_range)
+
+    print("\nImport log:")
+    print(imports.to_string(index=False))
+
+    if (
+        len(inconsistent_labels) > 0
+        or len(missing_accounts) > 0
+        or len(label_mismatches) > 0
+        or len(accounts) != 2074
+        or len(imports) != 2
+    ):
+        raise ValueError("Database integrity verification failed.")
+
+    print("\nSUCCESS: Database integrity checks passed.")
+
+
+
+def export_temporal_features():
+    """
+    Calculate temporal features for every tweet and export them to CSV.
+
+    Processing is performed account by account to avoid loading
+    the complete dataset into memory.
+    """
+
+    db_path = PROCESSED_DATA_DIR / "temporal_processing.db"
+    split_path = PROCESSED_DATA_DIR / "account_splits.csv"
+    output_path = PROCESSED_DATA_DIR / "temporal_features.csv"
+
+    if not db_path.exists():
+        raise FileNotFoundError("SQLite database not found.")
+
+    if not split_path.exists():
+        raise FileNotFoundError("Account splits file not found.")
+
+    # Load the small account-level split mapping.
+    splits = pd.read_csv(
+        split_path,
+        dtype={"user_id": "string"},
+    )
+
+    split_mapping = dict(
+        zip(splits["user_id"], splits["split"])
+    )
+
+    # Avoid accidentally appending to an old output.
+    if output_path.exists():
+        raise FileExistsError(
+            f"{output_path} already exists. "
+            "Rename or remove it before regenerating features."
+        )
+
+    query = """
+        SELECT
+            user_id,
+            tweet_id,
+            created_at_utc,
+            label
+        FROM tweets
+        ORDER BY user_id, created_at_utc, tweet_id
+    """
+
+    output_columns = [
+        "user_id",
+        "tweet_id",
+        "gap_seconds",
+        "hour",
+        "day_of_week",
+        "label",
+        "split",
+    ]
+
+    total_processed = 0
+    current_user_id = None
+    previous_timestamp = None
+
+    buffer = []
+    BUFFER_SIZE = 10_000
+
+    with sqlite3.connect(db_path) as connection:
+
+        cursor = connection.execute(query)
+
+        with open(output_path, "w", encoding="utf-8", newline="") as output_file:
+
+            # Write the CSV header.
+            pd.DataFrame(columns=output_columns).to_csv(
+                output_file,
+                index=False,
+            )
+
+            while True:
+
+                rows = cursor.fetchmany(CHUNK_SIZE)
+
+                if not rows:
+                    break
+
+                for user_id, tweet_id, timestamp, label in rows:
+
+                    if user_id != current_user_id:
+                        current_user_id = user_id
+                        previous_timestamp = None
+
+                    # First tweet of an account has no previous tweet.
+                    if previous_timestamp is None:
+                        gap_seconds = 0
+                    else:
+                        gap_seconds = timestamp - previous_timestamp
+
+                    # Convert UTC Unix timestamp into datetime.
+                    tweet_datetime = datetime.fromtimestamp(
+                        timestamp,
+                        tz=datetime.now().astimezone().tzinfo,
+                    )
+
+                    # Convert to UTC explicitly.
+                    tweet_datetime = datetime.fromtimestamp(
+                        timestamp,
+                        tz=timezone.utc,
+                    )
+
+                    hour = tweet_datetime.hour
+                    day_of_week = tweet_datetime.weekday()
+
+                    buffer.append(
+                        (
+                            user_id,
+                            tweet_id,
+                            gap_seconds,
+                            hour,
+                            day_of_week,
+                            label,
+                            split_mapping[user_id],
+                        )
+                    )
+
+                    previous_timestamp = timestamp
+                    total_processed += 1
+
+                if len(buffer) >= BUFFER_SIZE:
+
+                    pd.DataFrame(
+                        buffer,
+                        columns=output_columns,
+                    ).to_csv(
+                        output_file,
+                        index=False,
+                        header=False,
+                    )
+
+                    buffer.clear()
+
+                    print(
+                        f"Processed {total_processed:,} tweets"
+                    )
+
+            # Write remaining records.
+            if buffer:
+                pd.DataFrame(
+                    buffer,
+                    columns=output_columns,
+                ).to_csv(
+                    output_file,
+                    index=False,
+                    header=False,
+                )
+
+    print("\n" + "=" * 55)
+    print("TEMPORAL FEATURE EXTRACTION COMPLETED")
+    print("=" * 55)
+    print(f"Total tweets processed: {total_processed:,}")
+    print(f"Output file: {output_path}")
+
+
+def verify_temporal_features():
+    """
+    Validate temporal_features.csv in chunks.
+    """
+
+    output_path = PROCESSED_DATA_DIR / "temporal_features.csv"
+    split_path = PROCESSED_DATA_DIR / "account_splits.csv"
+
+    expected_splits = pd.read_csv(
+        split_path,
+        dtype={"user_id": "string"},
+    )
+
+    expected = {
+        row.user_id: (int(row.label), row.split)
+        for row in expected_splits.itertuples(index=False)
+    }
+
+    seen_accounts = set()
+    previous_user = None
+    total_rows = 0
+
+    for chunk in pd.read_csv(
+        output_path,
+        dtype={
+            "user_id": "string",
+            "tweet_id": "string",
+            "split": "string",
+        },
+        chunksize=CHUNK_SIZE,
+    ):
+
+        if chunk.isna().any().any():
+            raise ValueError("Missing values found in temporal features.")
+
+        if (chunk["gap_seconds"] < 0).any():
+            raise ValueError("Negative time gaps detected.")
+
+        if not chunk["hour"].between(0, 23).all():
+            raise ValueError("Invalid hour values detected.")
+
+        if not chunk["day_of_week"].between(0, 6).all():
+            raise ValueError("Invalid weekday values detected.")
+
+        # Detect account transitions across all rows and chunks.
+        for row in chunk[["user_id", "gap_seconds"]].itertuples(index=False):
+
+            if row.user_id != previous_user:
+
+                if row.user_id in seen_accounts:
+                    raise ValueError(
+                        f"Account appears in multiple separate groups: {row.user_id}"
+                    )
+
+                seen_accounts.add(row.user_id)
+
+                if row.gap_seconds != 0:
+                    raise ValueError(
+                        f"First tweet has a nonzero gap: {row.user_id}"
+                    )
+
+            previous_user = row.user_id
+
+        # Check account labels and splits within this chunk.
+        grouped = chunk.groupby("user_id", sort=False).agg(
+            label_count=("label", "nunique"),
+            split_count=("split", "nunique"),
+            label=("label", "first"),
+            split=("split", "first"),
+        )
+
+        for user_id, row in grouped.iterrows():
+
+            if user_id not in expected:
+                raise ValueError(f"Unknown account: {user_id}")
+
+            expected_label, expected_split = expected[user_id]
+
+            if (
+                row.label_count != 1
+                or row.split_count != 1
+                or row.label != expected_label
+                or row.split != expected_split
+            ):
+                raise ValueError(
+                    f"Incorrect label or split for account: {user_id}"
+                )
+
+        total_rows += len(chunk)
+        
+        print(f"Validated {total_rows:,} tweets")
+
+    if total_rows != 4_449_395:
+        raise ValueError(f"Unexpected row count: {total_rows:,}")
+
+    if seen_accounts != set(expected):
+        missing_accounts = set(expected) - seen_accounts
+        extra_accounts = seen_accounts - set(expected)
+
+        print("\nACCOUNT COVERAGE MISMATCH")
+        print(f"Expected accounts: {len(expected)}")
+        print(f"Found accounts: {len(seen_accounts)}")
+        print(f"Missing accounts: {len(missing_accounts)}")
+        print(f"Extra accounts: {len(extra_accounts)}")
+
+        print("\nFirst 10 missing account IDs:")
+        print(list(missing_accounts)[:10])
+
+        print("\nFirst 10 extra account IDs:")
+        print(list(extra_accounts)[:10])
+
+        raise ValueError("Account coverage does not match account_splits.csv.")
+
+    print("\n" + "=" * 55)
+    print("TEMPORAL FEATURE VALIDATION")
+    print("=" * 55)
+    print(f"Total tweets: {total_rows:,}")
+    print(f"Distinct accounts: {len(seen_accounts):,}")
+    print("Negative gaps: 0")
+    print("Invalid hours: 0")
+    print("Invalid weekdays: 0")
+    print("Incorrect first-tweet gaps: 0")
+    print("Label/split mismatches: 0")
+    print("\nSUCCESS: All temporal feature checks passed.")
