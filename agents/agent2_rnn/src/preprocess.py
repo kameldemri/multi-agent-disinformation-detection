@@ -10,6 +10,8 @@ from sklearn.model_selection import train_test_split
 import sqlite3
 from datetime import datetime, timezone
 
+import numpy as np
+
 
 # ============================================================
 # 1. PATHS AND CONFIGURATION
@@ -1002,3 +1004,457 @@ def verify_temporal_features():
     print("Incorrect first-tweet gaps: 0")
     print("Label/split mismatches: 0")
     print("\nSUCCESS: All temporal feature checks passed.")
+
+
+def analyze_sequence_lengths():
+    """
+    Analyze the number of temporal observations (tweets)
+    available for each account.
+    """
+
+    output_path = PROCESSED_DATA_DIR / "temporal_features.csv"
+
+    if not output_path.exists():
+        raise FileNotFoundError(
+            f"Temporal features file not found: {output_path}"
+        )
+
+    account_counts = {}
+
+    for chunk in pd.read_csv(
+        output_path,
+        usecols=["user_id"],
+        dtype={"user_id": "string"},
+        chunksize=CHUNK_SIZE,
+    ):
+        counts = chunk["user_id"].value_counts()
+
+        for user_id, count in counts.items():
+            account_counts[user_id] = (
+                account_counts.get(user_id, 0) + int(count)
+            )
+
+        print(
+            f"Processed {sum(account_counts.values()):,} tweets"
+        )
+
+    lengths = pd.Series(account_counts, dtype="int64")
+
+    print("\n" + "=" * 55)
+    print("SEQUENCE LENGTH ANALYSIS")
+    print("=" * 55)
+
+    print(f"Accounts: {len(lengths):,}")
+    print(f"Total tweets: {lengths.sum():,}")
+    print(f"Minimum: {lengths.min():,}")
+    print(f"Maximum: {lengths.max():,}")
+
+    print("\nPercentiles:")
+
+    percentiles = [0.25, 0.50, 0.75, 0.90, 0.95, 0.99]
+
+    for p in percentiles:
+        print(
+            f"P{int(p * 100):02d}: "
+            f"{lengths.quantile(p):,.1f}"
+        )
+
+    print("\nAccounts by sequence length:")
+
+    limits = [
+        (1, 10),
+        (11, 50),
+        (51, 100),
+        (101, 500),
+        (501, 1000),
+        (1001, 2000),
+        (2001, 5000),
+        (5001, float("inf")),
+    ]
+
+    for lower, upper in limits:
+        count = ((lengths >= lower) & (lengths <= upper)).sum()
+
+        if upper == float("inf"):
+            label = f"{lower:,}+"
+        else:
+            label = f"{lower:,}-{upper:,}"
+
+        print(f"{label}: {count:,}")
+
+    print("\nSUCCESS: Sequence length analysis completed.")
+
+
+    #sequence construction : 
+def build_account_sequences():
+    """
+    Build one variable-length temporal sequence per account.
+
+    Each timestep contains:
+        [gap_seconds, hour, day_of_week]
+
+    Sequences are kept variable-length at this stage.
+    No scaling, padding, truncation, or feature transformation
+    is performed here.
+    """
+
+    input_path = PROCESSED_DATA_DIR / "temporal_features.csv"
+    split_path = PROCESSED_DATA_DIR / "account_splits.csv"
+
+    if not input_path.exists():
+        raise FileNotFoundError(
+            f"Temporal features file not found: {input_path}"
+        )
+
+    if not split_path.exists():
+        raise FileNotFoundError(
+            f"Account split file not found: {split_path}"
+        )
+
+    # ---------------------------------------------------------
+    # Load account -> (label, split) mapping.
+    # This file contains only 2,074 rows, so it is safe to load.
+    # ---------------------------------------------------------
+
+    split_df = pd.read_csv(
+        split_path,
+        dtype={
+            "user_id": "string",
+            "label": "int8",
+            "split": "string",
+        },
+    )
+
+    expected_accounts = set(split_df["user_id"])
+
+    account_info = {
+        row.user_id: (int(row.label), row.split)
+        for row in split_df.itertuples(index=False)
+    }
+
+    # ---------------------------------------------------------
+    # Prepare containers for the three splits.
+    #
+    # We deliberately keep sequences variable-length.
+    # Therefore each split is a list of NumPy arrays.
+    # ---------------------------------------------------------
+
+    sequences = {
+        "train": [],
+        "validation": [],
+        "test": [],
+    }
+
+    labels = {
+        "train": [],
+        "validation": [],
+        "test": [],
+    }
+
+    current_user = None
+    current_sequence = []
+
+    processed_rows = 0
+    processed_accounts = 0
+
+    def finalize_account(user_id, sequence):
+        """Store the completed sequence for one account."""
+
+        if user_id is None:
+            return
+
+        if user_id not in account_info:
+            raise ValueError(
+                f"Account {user_id} not found in account_splits.csv."
+            )
+
+        label, split = account_info[user_id]
+
+        if len(sequence) == 0:
+            raise ValueError(
+                f"Account {user_id} has an empty sequence."
+            )
+
+        sequence_array = np.asarray(
+            sequence,
+            dtype=np.float32,
+        )
+
+        sequences[split].append(sequence_array)
+        labels[split].append(label)
+
+    # ---------------------------------------------------------
+    # Stream the temporal features CSV.
+    # ---------------------------------------------------------
+
+    for chunk in pd.read_csv(
+        input_path,
+        usecols=[
+            "user_id",
+            "gap_seconds",
+            "hour",
+            "day_of_week",
+        ],
+        dtype={
+            "user_id": "string",
+            "gap_seconds": "float32",
+            "hour": "int8",
+            "day_of_week": "int8",
+        },
+        chunksize=CHUNK_SIZE,
+    ):
+
+        for row in chunk.itertuples(index=False):
+
+            user_id = row.user_id
+
+            # First account.
+            if current_user is None:
+                current_user = user_id
+
+            # Account changed.
+            elif user_id != current_user:
+
+                finalize_account(
+                    current_user,
+                    current_sequence,
+                )
+
+                processed_accounts += 1
+
+                if processed_accounts % 100 == 0:
+                    print(
+                        f"Constructed {processed_accounts:,} "
+                        f"account sequences"
+                    )
+
+                current_user = user_id
+                current_sequence = []
+
+            # Add current timestep.
+            current_sequence.append(
+                [
+                    float(row.gap_seconds),
+                    int(row.hour),
+                    int(row.day_of_week),
+                ]
+            )
+
+            processed_rows += 1
+
+    # Final account after the loop.
+    if current_user is not None:
+        finalize_account(
+            current_user,
+            current_sequence,
+        )
+        processed_accounts += 1
+
+    # ---------------------------------------------------------
+    # Validate account counts.
+    # ---------------------------------------------------------
+
+    total_sequences = sum(
+        len(sequences[split])
+        for split in sequences
+    )
+
+    if total_sequences != len(expected_accounts):
+        raise ValueError(
+            "Sequence count does not match account_splits.csv: "
+            f"{total_sequences} != {len(expected_accounts)}"
+        )
+
+    if processed_rows != 4_449_395:
+        raise ValueError(
+            f"Unexpected number of processed rows: {processed_rows}"
+        )
+
+    # ---------------------------------------------------------
+    # Save each split.
+    #
+    # object arrays are required because sequences have different
+    # lengths at this stage.
+    # ---------------------------------------------------------
+
+    for split in ["train", "validation", "test"]:
+
+        output_path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_sequences.npz"
+        )
+
+        if output_path.exists():
+            raise FileExistsError(
+                f"Output already exists: {output_path}"
+            )
+
+        sequence_array = np.asarray(
+            sequences[split],
+            dtype=object,
+        )
+
+        label_array = np.asarray(
+            labels[split],
+            dtype=np.int8,
+        )
+
+        np.savez_compressed(
+            output_path,
+            sequences=sequence_array,
+            labels=label_array,
+        )
+
+        print(
+            f"\nSaved {split}:"
+        )
+        print(
+            f"  Accounts: {len(sequence_array):,}"
+        )
+        print(
+            f"  File: {output_path}"
+        )
+
+    print("\n" + "=" * 55)
+    print("ACCOUNT SEQUENCE CONSTRUCTION")
+    print("=" * 55)
+    print(f"Processed tweets: {processed_rows:,}")
+    print(f"Constructed accounts: {processed_accounts:,}")
+
+    for split in ["train", "validation", "test"]:
+        print(
+            f"{split.capitalize():12}: "
+            f"{len(sequences[split]):,} sequences"
+        )
+
+    print("\nSUCCESS: Account sequences constructed.")
+
+    #validate the constructed sequences
+def verify_account_sequences():
+    """
+    Validate the account-level sequence files created by
+    build_account_sequences().
+    """
+
+    expected_counts = {
+        "train": 1451,
+        "validation": 311,
+        "test": 312,
+    }
+
+    expected_total_tweets = 4_449_395
+
+    total_accounts = 0
+    total_timesteps = 0
+
+    print("\n" + "=" * 55)
+    print("ACCOUNT SEQUENCE VALIDATION")
+    print("=" * 55)
+
+    for split in ["train", "validation", "test"]:
+
+        path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_sequences.npz"
+        )
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Sequence file not found: {path}"
+            )
+
+        data = np.load(
+            path,
+            allow_pickle=True,
+        )
+
+        sequences = data["sequences"]
+        labels = data["labels"]
+
+        expected_accounts = expected_counts[split]
+
+        if len(sequences) != expected_accounts:
+            raise ValueError(
+                f"{split}: unexpected account count: "
+                f"{len(sequences)} != {expected_accounts}"
+            )
+
+        if len(labels) != expected_accounts:
+            raise ValueError(
+                f"{split}: sequence/label count mismatch."
+            )
+
+        split_timesteps = 0
+
+        for i, sequence in enumerate(sequences):
+
+            if sequence.ndim != 2:
+                raise ValueError(
+                    f"{split}: sequence {i} is not 2D: "
+                    f"shape={sequence.shape}"
+                )
+
+            if sequence.shape[1] != 3:
+                raise ValueError(
+                    f"{split}: sequence {i} does not have "
+                    f"3 features: shape={sequence.shape}"
+                )
+
+            if sequence.shape[0] == 0:
+                raise ValueError(
+                    f"{split}: sequence {i} is empty."
+                )
+
+            if np.isnan(sequence).any():
+                raise ValueError(
+                    f"{split}: sequence {i} contains NaN values."
+                )
+
+            if labels[i] not in [0, 1]:
+                raise ValueError(
+                    f"{split}: invalid label at index {i}: "
+                    f"{labels[i]}"
+                )
+
+            split_timesteps += sequence.shape[0]
+
+        total_accounts += len(sequences)
+        total_timesteps += split_timesteps
+
+        print(f"\n{split.upper()}")
+        print(f"Accounts: {len(sequences):,}")
+        print(f"Timesteps: {split_timesteps:,}")
+        print(
+            f"Label 0: {(labels == 0).sum():,}"
+        )
+        print(
+            f"Label 1: {(labels == 1).sum():,}"
+        )
+        print(
+            f"Min sequence length: "
+            f"{min(seq.shape[0] for seq in sequences):,}"
+        )
+        print(
+            f"Max sequence length: "
+            f"{max(seq.shape[0] for seq in sequences):,}"
+        )
+
+        data.close()
+
+    print("\n" + "-" * 55)
+    print(f"Total accounts: {total_accounts:,}")
+    print(f"Total timesteps: {total_timesteps:,}")
+
+    if total_accounts != 2074:
+        raise ValueError(
+            f"Unexpected total account count: {total_accounts}"
+        )
+
+    if total_timesteps != expected_total_tweets:
+        raise ValueError(
+            f"Unexpected total timestep count: "
+            f"{total_timesteps:,} != "
+            f"{expected_total_tweets:,}"
+        )
+
+    print("\nSUCCESS: All account sequence checks passed.")
