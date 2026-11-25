@@ -208,6 +208,7 @@ def evaluate(model, dataloader, criterion, device):
     return metrics
 
 
+
 def save_checkpoint(
     model,
     optimizer,
@@ -217,15 +218,22 @@ def save_checkpoint(
 ):
     """Save model and optimizer states."""
 
+    # Convert NumPy scalar values into native Python types.
+    safe_metrics = {
+        key: float(value)
+        for key, value in validation_metrics.items()
+    }
+
     checkpoint = {
-        "epoch": epoch,
+        "epoch": int(epoch),
         "model_state_dict": model.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
-        "validation_metrics": validation_metrics,
+        "validation_metrics": safe_metrics,
         "config": CONFIG.copy(),
     }
 
     torch.save(checkpoint, path)
+
 
 
 class EarlyStopping:
@@ -311,7 +319,7 @@ def train_model(model, train_loader, validation_loader, device):
         )
 
         validation_auc = validation_metrics["roc_auc"]
-        
+
         if not np.isfinite(validation_auc):
             raise ValueError(
                 f"Validation ROC-AUC is not finite: {validation_auc}"
