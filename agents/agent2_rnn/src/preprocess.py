@@ -1458,3 +1458,658 @@ def verify_account_sequences():
         )
 
     print("\nSUCCESS: All account sequence checks passed.")
+
+def analyze_raw_sequence_features():
+    """
+    Inspect the raw feature ranges stored in account sequences.
+    """
+
+    print("\n" + "=" * 55)
+    print("RAW SEQUENCE FEATURE ANALYSIS")
+    print("=" * 55)
+
+    for split in ["train", "validation", "test"]:
+
+        path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_sequences.npz"
+        )
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Sequence file not found: {path}"
+            )
+
+        data = np.load(
+            path,
+            allow_pickle=True,
+        )
+
+        sequences = data["sequences"]
+
+        all_gaps = np.concatenate(
+            [seq[:, 0] for seq in sequences]
+        )
+
+        hours = np.concatenate(
+            [seq[:, 1] for seq in sequences]
+        )
+
+        weekdays = np.concatenate(
+            [seq[:, 2] for seq in sequences]
+        )
+
+        print(f"\n{split.upper()}")
+
+        print(
+            f"Gap min:    {all_gaps.min():,.0f}"
+        )
+        print(
+            f"Gap median: {np.median(all_gaps):,.0f}"
+        )
+        print(
+            f"Gap mean:   {all_gaps.mean():,.2f}"
+        )
+        print(
+            f"Gap max:    {all_gaps.max():,.0f}"
+        )
+
+        print(
+            f"Hour range: "
+            f"{hours.min():.0f} - {hours.max():.0f}"
+        )
+
+        print(
+            f"Weekday range: "
+            f"{weekdays.min():.0f} - {weekdays.max():.0f}"
+        )
+
+        data.close()
+
+    print("\nSUCCESS: Raw sequence feature analysis completed.")
+
+
+def transform_temporal_sequences():
+    """
+    Transform raw temporal features into RNN-ready temporal features.
+
+    Raw features:
+        [gap_seconds, hour, day_of_week]
+
+    Transformed features:
+        [log_gap, hour_sin, hour_cos, day_sin, day_cos]
+    """
+
+    print("\n" + "=" * 55)
+    print("TRANSFORMING TEMPORAL SEQUENCES")
+    print("=" * 55)
+
+    for split in ["train", "validation", "test"]:
+
+        input_path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_sequences.npz"
+        )
+
+        output_path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_rnn_sequences.npz"
+        )
+
+        if not input_path.exists():
+            raise FileNotFoundError(
+                f"Input sequence file not found: {input_path}"
+            )
+
+        print(f"\nProcessing {split}...")
+
+        data = np.load(
+            input_path,
+            allow_pickle=True,
+        )
+
+        raw_sequences = data["sequences"]
+
+        transformed_sequences = []
+
+        for sequence in raw_sequences:
+
+            gap_seconds = sequence[:, 0]
+            hour = sequence[:, 1]
+            day_of_week = sequence[:, 2]
+
+            # 1. Compress the highly skewed time gaps
+            log_gap = np.log1p(gap_seconds)
+
+            # 2. Cyclic representation of hour
+            hour_sin = np.sin(
+                2 * np.pi * hour / 24
+            )
+
+            hour_cos = np.cos(
+                2 * np.pi * hour / 24
+            )
+
+            # 3. Cyclic representation of weekday
+            day_sin = np.sin(
+                2 * np.pi * day_of_week / 7
+            )
+
+            day_cos = np.cos(
+                2 * np.pi * day_of_week / 7
+            )
+
+            transformed = np.column_stack([
+                log_gap,
+                hour_sin,
+                hour_cos,
+                day_sin,
+                day_cos,
+            ]).astype(np.float32)
+
+            transformed_sequences.append(transformed)
+
+        labels = data["labels"]
+
+        np.savez_compressed(
+            output_path,
+            sequences=np.array(
+                transformed_sequences,
+                dtype=object,
+            ),
+            labels=labels,
+        )
+
+        data.close()
+
+        print(
+            f"  Sequences: {len(transformed_sequences):,}"
+        )
+        print(
+            f"  Features per timestep: "
+            f"{transformed_sequences[0].shape[1]}"
+        )
+
+        print(
+            f"  Saved: {output_path.name}"
+        )
+
+    print(
+        "\nSUCCESS: Temporal sequence transformation completed."
+    )
+
+def verify_transformed_sequences():
+    """
+    Verify the transformed RNN-ready temporal sequences.
+    """
+
+    print("\n" + "=" * 55)
+    print("VERIFYING TRANSFORMED SEQUENCES")
+    print("=" * 55)
+
+    expected_accounts = {
+        "train": 1451,
+        "validation": 311,
+        "test": 312,
+    }
+
+    total_accounts = 0
+
+    for split in ["train", "validation", "test"]:
+
+        path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_rnn_sequences.npz"
+        )
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Transformed sequence file not found: {path}"
+            )
+
+        data = np.load(
+            path,
+            allow_pickle=True,
+        )
+
+        sequences = data["sequences"]
+        labels = data["labels"]
+
+        if len(sequences) != expected_accounts[split]:
+            raise ValueError(
+                f"{split}: account count mismatch"
+            )
+
+        if len(labels) != len(sequences):
+            raise ValueError(
+                f"{split}: labels/sequences mismatch"
+            )
+
+        all_values = np.concatenate(sequences, axis=0)
+
+        if all_values.shape[1] != 5:
+            raise ValueError(
+                f"{split}: expected 5 features, "
+                f"found {all_values.shape[1]}"
+            )
+
+        if np.isnan(all_values).any():
+            raise ValueError(
+                f"{split}: NaN detected"
+            )
+
+        if np.isinf(all_values).any():
+            raise ValueError(
+                f"{split}: Inf detected"
+            )
+
+        log_gap = all_values[:, 0]
+        hour_sin = all_values[:, 1]
+        hour_cos = all_values[:, 2]
+        day_sin = all_values[:, 3]
+        day_cos = all_values[:, 4]
+
+        # log1p(gap) must never be negative
+        if log_gap.min() < 0:
+            raise ValueError(
+                f"{split}: negative log_gap detected"
+            )
+
+        # Cyclic features must remain in [-1, 1]
+        cyclic_features = np.concatenate([
+            hour_sin,
+            hour_cos,
+            day_sin,
+            day_cos,
+        ])
+
+        if cyclic_features.min() < -1.000001:
+            raise ValueError(
+                f"{split}: cyclic feature below -1"
+            )
+
+        if cyclic_features.max() > 1.000001:
+            raise ValueError(
+                f"{split}: cyclic feature above 1"
+            )
+
+        total_accounts += len(sequences)
+
+        print(f"\n{split.upper()}")
+        print(f"  Accounts: {len(sequences):,}")
+        print(f"  Total timesteps: {len(all_values):,}")
+
+        print(
+            f"  log_gap range: "
+            f"{log_gap.min():.4f} - {log_gap.max():.4f}"
+        )
+
+        print(
+            f"  hour_sin range: "
+            f"{hour_sin.min():.4f} - {hour_sin.max():.4f}"
+        )
+
+        print(
+            f"  hour_cos range: "
+            f"{hour_cos.min():.4f} - {hour_cos.max():.4f}"
+        )
+
+        print(
+            f"  day_sin range: "
+            f"{day_sin.min():.4f} - {day_sin.max():.4f}"
+        )
+
+        print(
+            f"  day_cos range: "
+            f"{day_cos.min():.4f} - {day_cos.max():.4f}"
+        )
+
+        data.close()
+
+    if total_accounts != 2074:
+        raise ValueError(
+            f"Total account count mismatch: {total_accounts}"
+        )
+
+    print(
+        "\nSUCCESS: Transformed sequences are valid."
+    )
+
+def fit_temporal_scaler():
+    """
+    Compute feature-wise mean and standard deviation using
+    TRAIN sequences only.
+
+    Saves the scaler parameters for later use.
+    """
+
+    print("\n" + "=" * 55)
+    print("FITTING TEMPORAL SCALER")
+    print("=" * 55)
+
+    train_path = (
+        PROCESSED_DATA_DIR /
+        "train_rnn_sequences.npz"
+    )
+
+    if not train_path.exists():
+        raise FileNotFoundError(
+            f"Training sequences not found: {train_path}"
+        )
+
+    data = np.load(
+        train_path,
+        allow_pickle=True,
+    )
+
+    sequences = data["sequences"]
+
+    # Online statistics
+    feature_sum = np.zeros(5, dtype=np.float64)
+    feature_sum_squared = np.zeros(5, dtype=np.float64)
+    total_count = 0
+
+    for sequence in sequences:
+
+        sequence = sequence.astype(
+            np.float64,
+            copy=False,
+        )
+
+        feature_sum += sequence.sum(axis=0)
+
+        feature_sum_squared += (
+            np.square(sequence).sum(axis=0)
+        )
+
+        total_count += sequence.shape[0]
+
+    data.close()
+
+    mean = feature_sum / total_count
+
+    variance = (
+        feature_sum_squared / total_count
+        - np.square(mean)
+    )
+
+    # Numerical protection against tiny negative values
+    variance = np.maximum(variance, 0.0)
+
+    std = np.sqrt(variance)
+
+    if np.any(std == 0):
+        raise ValueError(
+            "At least one feature has zero variance."
+        )
+
+    scaler_path = (
+        PROCESSED_DATA_DIR /
+        "temporal_scaler.npz"
+    )
+
+    np.savez(
+        scaler_path,
+        mean=mean,
+        std=std,
+    )
+
+    print(f"\nTraining timesteps: {total_count:,}")
+
+    print("\nFeature statistics:")
+
+    feature_names = [
+        "log_gap",
+        "hour_sin",
+        "hour_cos",
+        "day_sin",
+        "day_cos",
+    ]
+
+    for name, m, s in zip(
+        feature_names,
+        mean,
+        std,
+    ):
+        print(
+            f"  {name:<10} "
+            f"mean={m:.6f}  "
+            f"std={s:.6f}"
+        )
+
+    print(
+        f"\nSaved scaler: {scaler_path.name}"
+    )
+
+    print(
+        "\nSUCCESS: Temporal scaler fitted on TRAIN only."
+    )
+
+
+def apply_temporal_scaler():
+    """
+    Apply the train-fitted scaler to train, validation and test.
+
+    The scaler parameters are never recalculated here.
+    """
+
+    print("\n" + "=" * 55)
+    print("APPLYING TEMPORAL SCALER")
+    print("=" * 55)
+
+    scaler_path = (
+        PROCESSED_DATA_DIR /
+        "temporal_scaler.npz"
+    )
+
+    if not scaler_path.exists():
+        raise FileNotFoundError(
+            f"Scaler not found: {scaler_path}"
+        )
+
+    scaler = np.load(scaler_path)
+
+    mean = scaler["mean"]
+    std = scaler["std"]
+
+    scaler.close()
+
+    for split in ["train", "validation", "test"]:
+
+        input_path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_rnn_sequences.npz"
+        )
+
+        output_path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_scaled_sequences.npz"
+        )
+
+        if not input_path.exists():
+            raise FileNotFoundError(
+                f"Input not found: {input_path}"
+            )
+
+        print(f"\nProcessing {split}...")
+
+        data = np.load(
+            input_path,
+            allow_pickle=True,
+        )
+
+        raw_sequences = data["sequences"]
+        labels = data["labels"]
+
+        scaled_sequences = []
+
+        for sequence in raw_sequences:
+
+            scaled = (
+                sequence.astype(np.float32) - mean
+            ) / std
+
+            scaled_sequences.append(
+                scaled.astype(np.float32)
+            )
+
+        np.savez_compressed(
+            output_path,
+            sequences=np.array(
+                scaled_sequences,
+                dtype=object,
+            ),
+            labels=labels,
+        )
+
+        print(f"  Accounts: {len(scaled_sequences):,}")
+        print(f"  Features: 5")
+        print(f"  Saved: {output_path.name}")
+
+        data.close()
+
+    print(
+        "\nSUCCESS: Scaler applied to all splits."
+    )
+
+
+def verify_scaled_sequences():
+    """
+    Verify scaled sequences and calculate feature statistics.
+
+    Statistics are accumulated incrementally to avoid
+    concatenating all timesteps into a large matrix.
+    """
+
+    print("\n" + "=" * 55)
+    print("VERIFYING SCALED SEQUENCES")
+    print("=" * 55)
+
+    expected_accounts = {
+        "train": 1451,
+        "validation": 311,
+        "test": 312,
+    }
+
+    feature_names = [
+        "log_gap",
+        "hour_sin",
+        "hour_cos",
+        "day_sin",
+        "day_cos",
+    ]
+
+    total_accounts = 0
+    total_timesteps = 0
+
+    for split in ["train", "validation", "test"]:
+
+        path = (
+            PROCESSED_DATA_DIR /
+            f"{split}_scaled_sequences.npz"
+        )
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Scaled sequences not found: {path}"
+            )
+
+        data = np.load(path, allow_pickle=True)
+
+        sequences = data["sequences"]
+        labels = data["labels"]
+
+        if len(sequences) != expected_accounts[split]:
+            raise ValueError(
+                f"{split}: incorrect account count"
+            )
+
+        if len(labels) != len(sequences):
+            raise ValueError(
+                f"{split}: labels/sequences mismatch"
+            )
+
+        if not np.isin(labels, [0, 1]).all():
+            raise ValueError(
+                f"{split}: invalid labels detected"
+            )
+
+        feature_sum = np.zeros(5, dtype=np.float64)
+        feature_sum_squared = np.zeros(5, dtype=np.float64)
+        count = 0
+
+        for i, sequence in enumerate(sequences):
+
+            if sequence.ndim != 2 or sequence.shape[1] != 5:
+                raise ValueError(
+                    f"{split}: invalid shape in sequence {i}"
+                )
+
+            if len(sequence) == 0:
+                raise ValueError(
+                    f"{split}: empty sequence {i}"
+                )
+
+            if not np.isfinite(sequence).all():
+                raise ValueError(
+                    f"{split}: NaN or Inf in sequence {i}"
+                )
+
+            sequence = sequence.astype(
+                np.float64,
+                copy=False,
+            )
+
+            feature_sum += sequence.sum(axis=0)
+            feature_sum_squared += np.square(sequence).sum(axis=0)
+            count += len(sequence)
+
+        means = feature_sum / count
+
+        variances = (
+            feature_sum_squared / count
+            - np.square(means)
+        )
+
+        variances = np.maximum(variances, 0)
+        stds = np.sqrt(variances)
+
+        print(f"\n{split.upper()}")
+        print(f"  Accounts: {len(sequences):,}")
+        print(f"  Timesteps: {count:,}")
+        print(f"  Labels: {np.unique(labels)}")
+
+        print("  Feature statistics:")
+
+        for name, mean, std in zip(
+            feature_names,
+            means,
+            stds,
+        ):
+            print(
+                f"    {name:<10} "
+                f"mean={mean:.5f}  std={std:.5f}"
+            )
+
+        total_accounts += len(sequences)
+        total_timesteps += count
+
+        data.close()
+
+    if total_accounts != 2074:
+        raise ValueError(
+            f"Expected 2074 accounts, found {total_accounts}"
+        )
+
+    if total_timesteps != 4_449_395:
+        raise ValueError(
+            f"Unexpected total timesteps: {total_timesteps}"
+        )
+
+    print("\nTOTAL")
+    print(f"  Accounts: {total_accounts:,}")
+    print(f"  Timesteps: {total_timesteps:,}")
+
+    print(
+        "\nSUCCESS: Scaled sequences are valid."
+    )
