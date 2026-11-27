@@ -33,13 +33,16 @@
 - Source signature ("CITY (Reuters) -") that reveals the class.
 - `subject` and `date` are unreliable features.
 
-## 7. Proposed text preprocessing (proposal, not applied; to be agreed with the team)
-- Drop empty texts and duplicates.
-- Handle the "Reuters" signature (remove it, or compare results with and without it).
-- Do not use `subject` or `date` as features.
-- Lowercase, remove URLs, digits and punctuation; vectorize with word counts or TF-IDF.
-- Split train/test before training, with the same ratio for both classes.
-- Fix tokenization: keep apostrophes or drop single-letter tokens, to remove artifacts like `s`, `t`, `u`.
+## 7. Applied Agent 1 preprocessing
+- Ignore `subject` and `date`; they are not model features.
+- Remove texts shorter than 10 words and exact/near-exact text duplicates.
+- Remove texts that appear in both classes with conflicting labels.
+- Normalize the Reuters signature and apostrophes before vectorization.
+- Use `title + text` as the model input.
+- Vectorize with word TF-IDF or word counts; the implemented pipeline searches over both.
+- Group by normalized title so near-duplicate articles stay in the same split.
+- Use a grouped stratified train / validation / test split; fit the vectorizer on training data only.
+- Calibrate the final Naive Bayes probabilities before passing scores to Agent 3.
 
 ## 8. Suitability and limitations
 - Suitable for a first Naive Bayes baseline (text column, two balanced classes).
@@ -47,17 +50,22 @@
 
 ## 9. Suitability and Decision
 
-### Why the Fake News dataset does not fit the Agent 1 task as specified
+### Why the Fake News dataset is used for Agent 1
 
-Agent 1 is a lexical spam filter, but this dataset has no spam labels (only fake vs. true articles), so a spam filter can be neither trained nor evaluated on it. 
-Secondary limits: long news articles instead of short posts, and source bias ("Reuters" in 99.8% of true vs. 1.3% of fake articles; `subject` and `date` unreliable).
+Agent 1 is the content-analysis agent. The team decided to treat its task as fake-vs-true article classification, so the file-derived `fake = 1` / `true = 0` labels are the training targets. The implemented pipeline is a TF-IDF/count-vectorizer + Naive Bayes classifier with calibrated probabilities.
+
+### Why Cresci-2017 is not used for Agent 1
+
+Cresci-2017 has account-level genuine/spambot labels, not claim-veracity labels. It is used by Agent 2 for temporal bot detection, not by Agent 1. The text-focused Cresci notebook remains exploratory material only.
 
 ### Why the Twitter Bot Detection (Goyal) dataset is not used for Agent 1
 
-Its `Bot Label` describes accounts, not messages, and according to the Agent 2 EDA each account appears only once, with a single tweet. It therefore provides no spam-specific labels and no per-account tweet history.
+Its `Bot Label` describes accounts, not articles, and each account appears only once with a single tweet. It provides no fake-vs-true article labels and no per-account article history.
 
 ### Decision
 
-- The Fake News dataset is **not used** for Agent 1.
-- Agent 1 is to be trained on **Cresci-2017** (Kaggle copy: hashemalsalmi/cresci-2017), a Twitter dataset of genuine accounts and spambot accounts with their tweets.
+- Agent 1 uses `data/raw/fake_news/fake.csv` and `data/raw/fake_news/true.csv`.
+- Agent 1 does **not** use Cresci-2017 or the Goyal Twitter Bot Detection dataset.
+- Agent 2 uses Cresci-2017; see [Cresci-2017 agent data](cresci-2017-agent-data.md).
+- Limitations still apply: source bias, long news articles, duplicate titles and unreliable `subject` / `date` columns.
 

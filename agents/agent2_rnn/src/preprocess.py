@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -213,15 +214,6 @@ def prepare_tweet_data() -> None:
 
     print(f"Total usable accounts: {len(total_users):,}")
     print(f"Output directory: {PROCESSED_DATA_DIR}")
-
-
-# ============================================================
-# 5. EXECUTION
-# ============================================================
-
-if __name__ == "__main__":
-    prepare_tweet_data()
-
 
 
 def load_accounts_from_processed_file(file_path: Path) -> set[str]:
@@ -2113,3 +2105,50 @@ def verify_scaled_sequences():
     print(
         "\nSUCCESS: Scaled sequences are valid."
     )
+
+
+def run_phase(phase: str) -> None:
+    phases = {
+        "1": [prepare_tweet_data],
+        "2": [create_account_splits],
+        "3": [import_all_tweets_to_sqlite, verify_temporal_database],
+        "4": [export_temporal_features, verify_temporal_features],
+        "5": [
+            analyze_sequence_lengths,
+            build_account_sequences,
+            verify_account_sequences,
+            analyze_raw_sequence_features,
+        ],
+        "6": [transform_temporal_sequences, verify_transformed_sequences],
+        "7": [
+            fit_temporal_scaler,
+            apply_temporal_scaler,
+            verify_scaled_sequences,
+        ],
+    }
+
+    if phase == "all":
+        for name in ["1", "2", "3", "4", "5", "6", "7"]:
+            print(f"\nRUNNING PHASE {name}")
+            run_phase(name)
+        return
+
+    for function in phases[phase]:
+        function()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run Agent 2 temporal preprocessing phases."
+    )
+    parser.add_argument(
+        "--phase",
+        choices=["1", "2", "3", "4", "5", "6", "7", "all"],
+        default="1",
+    )
+    args = parser.parse_args()
+    run_phase(args.phase)
+
+
+if __name__ == "__main__":
+    main()

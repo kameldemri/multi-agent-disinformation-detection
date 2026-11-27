@@ -16,3 +16,6 @@ kagglehub>=0.3,<1.0
 
 # Machine Learning
 scikit-learn>=1.5,<2.0
+
+# Deep Learning
+torch>=2.2,<3.0

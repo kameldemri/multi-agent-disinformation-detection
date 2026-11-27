@@ -23,7 +23,7 @@ The system consists of three machine learning agents and a shared coordination l
 | Component | Responsibility | Technique |
 |---|---|---|
 | Agent 1 | Content analysis | Naive Bayes |
-| Agent 2 | Temporal behavior analysis | Recurrent Neural Network (RNN/LSTM) |
+| Agent 2 | Temporal behavior analysis | Bidirectional GRU (PyTorch) |
 | Coordination Layer | Cross-account analysis and coordination features | Python-based analysis |
 | Agent 3 | Evidence integration and risk classification | Logistic Regression |
 
@@ -57,12 +57,13 @@ Each agent directory contains its own source code, tests, and documentation.
 
 ## Datasets
 
-The project uses the following datasets as its initial data sources:
+The project uses the following datasets:
 
-- **Twitter Bot Detection Dataset** — for investigating automated account behavior.
-- **Fake News Detection Dataset** — for investigating potentially misleading content.
+- **Fake News Detection Dataset** — Agent 1 article-level fake-vs-true classification.
+- **Cresci-2017** — Agent 2 account-level temporal bot detection.
+- **Twitter Bot Detection Dataset** — initial data source still awaiting inspection.
 
-Dataset preparation, suitability, and the availability of the labels required for each task will be documented before model training begins.
+Dataset preparation, suitability, and label handling are documented in [`docs/dataset-notes.md`](docs/dataset-notes.md).
 
 See [`docs/dataset-notes.md`](docs/dataset-notes.md) for further details.
 

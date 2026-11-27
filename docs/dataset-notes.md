@@ -7,8 +7,8 @@ Per-dataset EDA lives under [`docs/datasets/`](datasets/).
 
 | Dataset | Raw location | Task / label source | Status | Details |
 |---|---|---|---|---|
-| Cresci-2017 | `data/raw/cresci_2017/` | Folder-derived: `genuine_accounts` = 0, `social_spambots` = 1 | EDA complete; not used for headline fake-news results | [Dataset EDA](datasets/cresci-2017.md) · [Agent data views](datasets/cresci-2017-agent-data.md) |
-| Fake News Detection | `data/raw/fake_news/` | File-derived: fake / true articles | EDA complete; main content dataset | [Dataset EDA](datasets/fake-news.md) |
+| Cresci-2017 | `data/raw/cresci_2017/` | Folder-derived: `genuine_accounts` = 0, `social_spambots` = 1 | EDA complete; used by Agent 2 temporal model | [Dataset EDA](datasets/cresci-2017.md) · [Agent data views](datasets/cresci-2017-agent-data.md) |
+| Fake News Detection | `data/raw/fake_news/` | File-derived: fake = 1, true = 0 | EDA complete; used by Agent 1 Naive Bayes | [Dataset EDA](datasets/fake-news.md) |
 | Twitter Bot Detection | `data/raw/twitter_bot_detection/` | TODO: confirm | Not yet inspected | [Notes](datasets/twitter-bot.md) (empty) |
 
 All raw CSVs are gitignored. Cresci-2017 can be downloaded from
@@ -22,8 +22,8 @@ https://www.kaggle.com/datasets/hashemalsalmi/cresci-2017 and must keep the fold
 - User balance: 3,474 genuine / 991 spambot (77.81% / 22.19%).
 - Tweet balance: 2,839,362 genuine / 1,610,034 spambot (63.81% / 36.19%).
 - Labels are account-level. The dataset contains one bot type only (social spambots) and no
-  claim-veracity label, so it is a supplementary bot-behaviour benchmark, not a fake-news
-  dataset. Full numbers, limitations and leakage table: [Cresci-2017 EDA](datasets/cresci-2017.md).
+  claim-veracity label, so it is a bot-behaviour benchmark for Agent 2, not a fake-news dataset.
+  Full numbers, limitations and leakage table: [Cresci-2017 EDA](datasets/cresci-2017.md).
 - Notebooks (all outputs are displayed inline; no result files are written):
   [overview](../analysis/eda_cresci_overview.ipynb),
   [text](../agents/agent1_naive_bayes/analysis/eda_cresci_text.ipynb),
@@ -31,31 +31,36 @@ https://www.kaggle.com/datasets/hashemalsalmi/cresci-2017 and must keep the fold
 
 ## 3. Which agent uses which data
 
-This is the only division done in this phase, and it is a **column/view split, not a row split**:
+The agents use different raw datasets; there is no shared row split between them.
 
-- Agent 1 (Naive Bayes): one tweet → `text` only, labelled spam (1) or not spam (0) by its user.
-- Agent 2 (RNN): one ordered tweet sequence per user → `created_at` ordering, gaps, hour/day,
-  tweets-per-user, labelled by the account.
+- Agent 1 (Naive Bayes): one news article from `fake.csv` / `true.csv` → `title + text`, labelled
+  fake (1) or true (0) by the source file. See [Fake News EDA](datasets/fake-news.md).
+- Agent 2 (RNN): one ordered tweet sequence per Cresci-2017 user → `created_at` ordering, gaps,
+  hour/day, tweets-per-user, labelled genuine (0) or spambot (1) by the account. See
+  [Cresci-2017 agent data views](datasets/cresci-2017-agent-data.md).
 - Agent 3: combined user-level view; no separate EDA notebook yet.
-- Both agents read the same raw CSVs and the same shared checks (integrity, balance, leakage,
-  `test_set_*` audit). See [Cresci-2017 agent data views](datasets/cresci-2017-agent-data.md).
-- `test_set_1` / `test_set_2` are only audited as leakage columns.
+- The Cresci-2017 notebooks still document a text-only exploration, but that view is exploratory
+  only and is not the Agent 1 training recipe.
+- In Cresci-2017, `test_set_1` / `test_set_2` are audited as leakage columns only.
 
 ## 4. Handoff boundary
 
-This phase delivers the EDA, notebooks and column/view guidance. The teammates doing the modelling
-own the train/validation/test split and training pipeline. For Cresci-2017 they must keep each
-user's data together, exclude the leakage columns, handle the 2,391 genuine users with zero tweets,
-and account for the repeated spambot text.
+The EDA phase delivered dataset notes, notebooks and column/view guidance. The implemented modelling
+pipelines own their own train/validation/test split and training:
+
+- Agent 1 handles the Fake News dataset, groups near-duplicate articles by normalized title, and
+  excludes `subject` and `date`.
+- Agent 2 handles Cresci-2017, keeps each user's tweets together, excludes the leakage columns,
+  handles the 2,391 genuine users with zero tweets, and scales temporal features using training data
+  only.
 
 ## 5. Reading order for teammates
 
 1. This file — project-level map.
-2. [Full Cresci-2017 EDA](datasets/cresci-2017.md) — all verified numbers, limitations, leakage table.
-3. [Agent data views](datasets/cresci-2017-agent-data.md) — what agent 1 and agent 2 actually use.
-4. [Overview notebook](../analysis/eda_cresci_overview.ipynb) — start at **Key takeaways**, then sections 1–9.
-5. The focused notebook for your agent: [text](../agents/agent1_naive_bayes/analysis/eda_cresci_text.ipynb)
-   or [timing/user](../agents/agent2_rnn/analysis/eda_cresci_timing_user.ipynb).
+2. Agent 1: [Fake News EDA](datasets/fake-news.md) and [`agents/agent1_naive_bayes/README.md`](../agents/agent1_naive_bayes/README.md).
+3. Agent 2: [Full Cresci-2017 EDA](datasets/cresci-2017.md), [Agent data views](datasets/cresci-2017-agent-data.md) and [`agents/agent2_rnn/README.md`](../agents/agent2_rnn/README.md).
+4. Cresci notebooks: [overview](../analysis/eda_cresci_overview.ipynb) and [timing/user](../agents/agent2_rnn/analysis/eda_cresci_timing_user.ipynb).
+5. The text-focused Cresci notebook is archived exploration: [`eda_cresci_text.ipynb`](../agents/agent1_naive_bayes/analysis/eda_cresci_text.ipynb).
 
 ## 6. Open items
 

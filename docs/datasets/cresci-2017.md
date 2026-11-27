@@ -7,7 +7,7 @@ Notebooks:
 - [Overview EDA](../../analysis/eda_cresci_overview.ipynb) — all sections, whole dataset.
 - [Text-focus EDA](../../agents/agent1_naive_bayes/analysis/eda_cresci_text.ipynb) — sections 1, 2, 6, 8, 9.
 - [Timing/user-focus EDA](../../agents/agent2_rnn/analysis/eda_cresci_timing_user.ipynb) — sections 1, 2, 3, 4, 5, 7, 8, 9.
-- [Which data each agent uses](cresci-2017-agent-data.md) — practical handoff for agent 1 / agent 2.
+- [Agent 2 data handoff](cresci-2017-agent-data.md) — practical temporal-view recipe for Agent 2.
 
 Source: Kaggle, https://www.kaggle.com/datasets/hashemalsalmi/cresci-2017.
 Raw data is gitignored under `data/raw/cresci_2017/`.
@@ -154,10 +154,9 @@ build any train/validation/test split in this phase.
 
 ## 8. Suitability and decision
 
-- Suitable as a **supplementary bot-detection benchmark**: agent 1 can use text-only features,
-  agent 2 can use timing/user features.
-- Not a substitute for the fake-news datasets: there is no claim-veracity label. Keep it out of
-  any headline fake-news result.
+- Suitable as a **bot-detection benchmark for Agent 2**, which uses timing/user features.
+- Not used by Agent 1: it has no claim-veracity label. Agent 1 uses the
+  [Fake News dataset](fake-news.md) instead.
 - One bot type only (`social_spambots`), so results will not generalise to other bot families.
 - Account-level labels mean a tweet-level model would reuse the same label for thousands of tweets
   from one user; the EDA flags this explicitly.
@@ -167,7 +166,7 @@ build any train/validation/test split in this phase.
 ## 9. How to use this EDA
 
 1. Read this file for the whole picture and the verified numbers.
-2. Read [agent data views](cresci-2017-agent-data.md) for the exact column/view and the preprocessing recipe each agent needs.
+2. Read [Agent 2 data handoff](cresci-2017-agent-data.md) for the exact temporal view and implemented preprocessing recipe.
 3. Open the overview notebook, start at the top **Key takeaways** cell, then follow sections 1 → 9.
 4. Agent teammates open their own focused notebook; they contain the same shared checks plus only
    their sections.
