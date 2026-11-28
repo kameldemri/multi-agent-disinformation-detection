@@ -3,10 +3,12 @@ import os
 import uvicorn
 from fastapi import FastAPI, HTTPException
 
+from services.agent3_service.llm import explain_result, load_settings
 from services.agent3_service.policy import evaluate_decision
 from services.agent3_service.schemas import DecisionRequest, DecisionResponse
 
 app = FastAPI(title="Agent 3 Decision Service", version="1.0.0")
+LLM_SETTINGS = load_settings()
 
 
 @app.get("/health")
@@ -27,7 +29,12 @@ def decide(request: DecisionRequest) -> DecisionResponse:
 
     request.user_id = user_id
     request.agent_2.user_id = agent_2_user_id
-    return evaluate_decision(request)
+
+    decision = evaluate_decision(request)
+    reason, llm_status = explain_result(decision, LLM_SETTINGS)
+    decision.reason = reason
+    decision.llm_status = llm_status
+    return decision
 
 
 if __name__ == "__main__":

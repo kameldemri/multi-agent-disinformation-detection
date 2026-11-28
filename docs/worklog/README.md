@@ -22,7 +22,7 @@ Its purpose is to preserve enough context for another agent, or for us after con
 - Base branch before planning: `main`
 - Base commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`
 - Planning branch: `plan/agent3-decision-layer`
-- Current active branch: `feat/agent3-policy`
+- Current active branch: `feat/agent3-llm-explainer`
 - Planning is committed locally but not pushed.
 
 ## Phase Status
@@ -33,7 +33,7 @@ Its purpose is to preserve enough context for another agent, or for us after con
 | Agent 1 service | `feat/agent1-service` | done locally; awaiting confirmation |
 | Agent 2 service | `feat/agent2-service` | done locally; awaiting confirmation |
 | Agent 3 policy | `feat/agent3-policy` | done locally; awaiting confirmation |
-| Agent 3 LLM explainer | `feat/agent3-llm-explainer` | planned |
+| Agent 3 LLM explainer | `feat/agent3-llm-explainer` | done locally; awaiting confirmation |
 | Coordinator API | `feat/coordinator-api` | planned |
 | Docker runtime | `infra/docker-runtime` | planned |
 | End-to-end validation | `test/agent3-e2e-validation` | planned |

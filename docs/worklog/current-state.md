@@ -17,7 +17,7 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 - Base `main` commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`.
 - Base `main` message: `fix(deps): declare joblib and torch requirements`.
 - Planning branch: `plan/agent3-decision-layer`.
-- Current branch: `feat/agent3-policy`.
+- Current branch: `feat/agent3-llm-explainer`.
 - Planning docs are committed locally but not pushed.
 - Documentation-only work is folded into the planning branch; no throwaway phase branch.
 - Implementation phases get professional branches such as `feat/agent1-service`.
@@ -237,6 +237,7 @@ Docker:
 - `LLM_BASE_URL` for OpenAI-compatible providers.
 - `LLM_MODEL`.
 - `LLM_TIMEOUT_SECONDS`.
+- `LLM_MAX_TOKENS`.
 - `LOG_LEVEL`.
 
 ## Planning Verification Results
@@ -328,6 +329,28 @@ Verified:
 - Probability outside `[0, 1]` returns `422`.
 - `llm_status` is `disabled` in this phase.
 
+## Agent 3 LLM Explainer Result
+
+New file:
+
+- `services/agent3_service/llm.py`
+
+Changed files:
+
+- `services/agent3_service/app.py`
+- `requirements.txt`
+- `tests/test_agent3_llm.py`
+
+Verified:
+
+- Offline mode returns deterministic reason with `llm_status="disabled"`.
+- API success with a fake client returns LLM reason with `llm_status="used"`.
+- Missing API key falls back to deterministic reason with `llm_status="fallback"`.
+- Malformed JSON is rejected.
+- `GET /health` and `POST /decide` passed live uvicorn check in offline mode.
+- No real API call was made during tests.
+- Decision and risk remain deterministic and unchanged by the LLM.
+
 ## Current Next Action
 
-User confirms `feat/agent3-policy`; then create `feat/agent3-llm-explainer` and add the optional LLM explanation layer.
+User confirms `feat/agent3-llm-explainer`; then create `feat/coordinator-api` and add the public orchestration API.
