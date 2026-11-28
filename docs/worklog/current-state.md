@@ -17,7 +17,7 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 - Base `main` commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`.
 - Base `main` message: `fix(deps): declare joblib and torch requirements`.
 - Planning branch: `plan/agent3-decision-layer`.
-- Current branch: `plan/agent3-decision-layer`.
+- Current branch: `feat/agent1-service`.
 - Planning docs are committed locally but not pushed.
 - Documentation-only work is folded into the planning branch; no throwaway phase branch.
 - Implementation phases get professional branches such as `feat/agent1-service`.
@@ -258,6 +258,33 @@ Results:
 
 No application code changed during planning.
 
+## Agent 1 Service Result
+
+New files:
+
+- `services/agent1_service/app.py`
+- `services/agent1_service/__init__.py`
+- `services/__init__.py`
+- `tests/test_agent1_service.py`
+
+Dependency changes:
+
+- Added `fastapi>=0.115,<1.0`.
+- Added `uvicorn>=0.30,<1.0`.
+
+Verified:
+
+- `compileall` passed.
+- `pip check` passed.
+- `pip install --dry-run -r requirements.txt` passed.
+- Test script passed with:
+  ```json
+  {"fake_news_probability": 0.45518806499284004, "predicted_label": 0}
+  ```
+- Live uvicorn check passed:
+  - `GET /health` returned `{"status":"ok"}`.
+  - `POST /predict` returned the expected JSON.
+
 ## Current Next Action
 
-User confirms the plan; then create `feat/agent1-service` and implement the Agent 1 service.
+User confirms `feat/agent1-service`; then create `feat/agent2-service` and implement the Agent 2 service.
