@@ -2,9 +2,9 @@
 
 Branch: `feat/agent2-service`
 
-Depends on: phase 02
+Depends on: `feat/agent1-service`
 
-Status: planned
+Status: done locally; awaiting user confirmation.
 
 ## Goal
 
@@ -12,27 +12,67 @@ Expose Agent 2 as an internal HTTP service using the frozen single-account contr
 
 ## Scope
 
-- Add FastAPI app for Agent 2.
+- Added FastAPI app for Agent 2.
 - Endpoint: `POST /predict`.
 - Input: one account object with `user_id` and `tweets`.
 - Output: `user_id`, `bot_probability`, `predicted_label`.
-- Add tests using tracked checkpoint and scaler.
-- Add `/health`.
+- Added `/health`.
+- Added model lazy-loading so the checkpoint is loaded once per service process.
+
+## Files Added
+
+- `services/agent2_service/__init__.py`
+- `services/agent2_service/app.py`
+- `tests/test_agent2_service.py`
+
+## Environment Variables
+
+- `BOT_THRESHOLD`, default `0.5`.
+- `PORT`, default `8002`.
 
 ## Acceptance Criteria
 
-- Service runs independently.
-- No training or preprocessing command needed.
-- Sample account returns valid bot probability in `[0, 1]`.
-- Fewer than 3 tweets returns `422`.
-- Timezone-naive timestamps return `422`.
+- Service runs independently: passed.
+- No training or preprocessing command needed: passed.
+- Sample account returns valid bot probability in `[0, 1]`: passed.
+- Fewer than 3 tweets returns `422`: passed.
+- Timezone-naive timestamps return `422`: passed.
+- Empty `user_id` returns `422`: passed.
 
-## Tests
+## Commands Run
 
 ```bash
-PYTHONPATH=. python -m pytest tests/test_agent2_service.py
+.venv/bin/python -m compileall -q services tests
+PYTHONPATH=. .venv/bin/python tests/test_agent2_service.py
+PYTHONPATH=. .venv/bin/python -m uvicorn services.agent2_service.app:app --host 127.0.0.1 --port 8012
 ```
+
+## Verification Results
+
+Test script output:
+
+```json
+{"user_id": "account_001", "bot_probability": 0.1048131138086319, "predicted_label": 0}
+```
+
+Live health:
+
+```json
+{"status":"ok"}
+```
+
+Live prediction:
+
+```json
+{"user_id":"account_001","bot_probability":0.1048131138086319,"predicted_label":0}
+```
+
+A non-blocking `StarletteDeprecationWarning` appeared from `TestClient`; service behavior passed.
+
+## Result
+
+Agent 2 is ready to be called as an internal HTTP service.
 
 ## Next Step
 
-`feat/agent3-policy`.
+User confirms this branch; then create `feat/agent3-policy`.
