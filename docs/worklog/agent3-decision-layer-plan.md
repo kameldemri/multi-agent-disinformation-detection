@@ -1,8 +1,8 @@
-# Phase 00 — Planning
+# Agent 3 Decision Layer — Planning
 
-Branch: `phase/00-planning`
+Branch: `plan/agent3-decision-layer`
 
-Status: done on this branch; pending user confirmation before merge.
+Status: done locally; awaiting user confirmation before implementation.
 
 ## Goal
 
@@ -28,28 +28,27 @@ Write enough plan and context so work can pause or move to another agent without
 
 - `docs/worklog/README.md`
 - `docs/worklog/current-state.md`
-- `docs/worklog/phase-00-planning.md`
-- `docs/worklog/phase-01-contracts.md`
-- `docs/worklog/phase-02-agent1-service.md`
-- `docs/worklog/phase-03-agent2-service.md`
-- `docs/worklog/phase-04-agent3-policy.md`
-- `docs/worklog/phase-05-agent3-llm.md`
-- `docs/worklog/phase-06-coordinator.md`
-- `docs/worklog/phase-07-docker.md`
-- `docs/worklog/phase-08-e2e-validation.md`
+- `docs/worklog/agent3-decision-layer-plan.md`
+- `docs/worklog/agent3-contracts.md`
+- `docs/worklog/agent1-service-plan.md`
+- `docs/worklog/agent2-service-plan.md`
+- `docs/worklog/agent3-policy-plan.md`
+- `docs/worklog/agent3-llm-explainer-plan.md`
+- `docs/worklog/coordinator-api-plan.md`
+- `docs/worklog/docker-runtime-plan.md`
+- `docs/worklog/e2e-validation-plan.md`
 
 ## Commands Run
 
 ```bash
 git status -sb
-git checkout -b phase/00-planning
 mkdir -p docs/worklog
 ```
 
 ## Result
 
-Planning artifacts created. No application code changed.
+Planning artifacts and frozen contracts created on one planning branch. No application code changed.
 
 ## Next Step
 
-Create `phase/01-contracts` from this branch and complete Phase 1.
+User confirms the plan; then create `feat/agent1-service`.

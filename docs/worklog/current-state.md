@@ -16,10 +16,11 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 
 - Base `main` commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`.
 - Base `main` message: `fix(deps): declare joblib and torch requirements`.
-- Planning branch: `phase/00-planning`, local commit `b1fa268`.
-- Current branch: `phase/01-contracts`.
-- Remote push failed with GitHub port 443 network error; branches need pushing when reachable.
-- Work happens one phase per branch.
+- Planning branch: `plan/agent3-decision-layer`.
+- Current branch: `plan/agent3-decision-layer`.
+- Planning docs are committed locally but not pushed.
+- Documentation-only work is folded into the planning branch; no throwaway phase branch.
+- Implementation phases get professional branches such as `feat/agent1-service`.
 - Do not merge into `main` until the user confirms.
 
 ## Completed Baseline
@@ -238,9 +239,9 @@ Docker:
 - `LLM_TIMEOUT_SECONDS`.
 - `LOG_LEVEL`.
 
-## Phase 1 Verification Results
+## Planning Verification Results
 
-Commands run on `phase/01-contracts`:
+Commands run on `plan/agent3-decision-layer`:
 
 ```bash
 PYTHONPATH=. .venv/bin/python -c "from agents.agent1_naive_bayes.src.predict import score_text; print(score_text('The election was rigged and officials hid the truth'))"
@@ -255,8 +256,8 @@ Results:
   [{'user_id': 'account_001', 'bot_probability': 0.1048131138086319, 'predicted_label': 0}]
   ```
 
-No application code changed in Phase 1.
+No application code changed during planning.
 
 ## Current Next Action
 
-User confirms `phase/01-contracts`; then create `phase/02-agent1-service` and implement the Agent 1 service.
+User confirms the plan; then create `feat/agent1-service` and implement the Agent 1 service.

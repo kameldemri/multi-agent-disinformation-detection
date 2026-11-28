@@ -1,6 +1,6 @@
-# Phase 03 — Agent 2 Service
+# Agent 2 Service — Plan
 
-Branch: `phase/03-agent2-service`
+Branch: `feat/agent2-service`
 
 Depends on: phase 02
 
@@ -35,4 +35,4 @@ PYTHONPATH=. python -m pytest tests/test_agent2_service.py
 
 ## Next Step
 
-Phase 04: Agent 3 deterministic policy.
+`feat/agent3-policy`.

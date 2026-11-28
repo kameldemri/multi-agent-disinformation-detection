@@ -1,10 +1,8 @@
-# Phase 01 — Contracts
+# Agent 3 Contracts
 
-Branch: `phase/01-contracts`
+Folded into planning branch: `plan/agent3-decision-layer`
 
-Depends on: `phase/00-planning`
-
-Status: done locally; push pending; awaiting user confirmation.
+Status: done locally; awaiting user confirmation.
 
 ## Goal
 
@@ -263,7 +261,6 @@ Output:
 ## Commands Run
 
 ```bash
-git checkout -b phase/01-contracts
 PYTHONPATH=. .venv/bin/python -c "from agents.agent1_naive_bayes.src.predict import score_text; print(score_text('The election was rigged and officials hid the truth'))"
 PYTHONPATH=. .venv/bin/python -c "from agents.agent2_rnn.src.predict import predict_accounts; print(predict_accounts([{'user_id':'account_001','tweets':[{'tweet_id':'101','created_at':'2026-11-20T10:30:00Z'},{'tweet_id':'102','created_at':'2026-11-20T10:35:00Z'},{'tweet_id':'103','created_at':'2026-11-20T11:00:00Z'}]}]))"
 ```
@@ -276,4 +273,4 @@ PYTHONPATH=. .venv/bin/python -c "from agents.agent2_rnn.src.predict import pred
 
 ## Next Step
 
-User confirms this phase; then create `phase/02-agent1-service`.
+User confirms the plan; then create `feat/agent1-service`.

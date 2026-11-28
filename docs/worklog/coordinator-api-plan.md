@@ -1,6 +1,6 @@
-# Phase 06 — Coordinator
+# Coordinator API — Plan
 
-Branch: `phase/06-coordinator`
+Branch: `feat/coordinator-api`
 
 Depends on: phase 05
 
@@ -34,4 +34,4 @@ PYTHONPATH=. python -m pytest tests/test_coordinator.py
 
 ## Next Step
 
-Phase 07: Dockerization.
+`infra/docker-runtime`.

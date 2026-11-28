@@ -1,6 +1,6 @@
-# Phase 08 — End-to-End Validation
+# End-to-End Validation — Plan
 
-Branch: `phase/08-e2e-validation`
+Branch: `test/agent3-e2e-validation`
 
 Depends on: phase 07
 
@@ -33,4 +33,4 @@ docker compose up --build
 
 ## Next Step
 
-User confirmation, then merge phase branches in order into `main`.
+User confirmation, then merge implementation branches in order into `main`.

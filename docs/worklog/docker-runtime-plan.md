@@ -1,6 +1,6 @@
-# Phase 07 — Docker
+# Docker Runtime — Plan
 
-Branch: `phase/07-docker`
+Branch: `infra/docker-runtime`
 
 Depends on: phase 06
 
@@ -36,4 +36,4 @@ curl http://localhost:8000/health
 
 ## Next Step
 
-Phase 08: end-to-end validation.
+`test/agent3-e2e-validation`.

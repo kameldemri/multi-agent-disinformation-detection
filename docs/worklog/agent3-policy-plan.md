@@ -1,6 +1,6 @@
-# Phase 04 — Agent 3 Policy
+# Agent 3 Policy — Plan
 
-Branch: `phase/04-agent3-policy`
+Branch: `feat/agent3-policy`
 
 Depends on: phase 03
 
@@ -36,4 +36,4 @@ PYTHONPATH=. python -m pytest tests/test_agent3_policy.py
 
 ## Next Step
 
-Phase 05: Agent 3 LLM explainer.
+`feat/agent3-llm-explainer`.

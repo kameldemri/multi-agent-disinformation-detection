@@ -1,6 +1,6 @@
-# Phase 02 — Agent 1 Service
+# Agent 1 Service — Plan
 
-Branch: `phase/02-agent1-service`
+Branch: `feat/agent1-service`
 
 Depends on: phase 01
 
@@ -34,4 +34,4 @@ PYTHONPATH=. python -m pytest tests/test_agent1_service.py
 
 ## Next Step
 
-Phase 03: Agent 2 service.
+`feat/agent2-service`.

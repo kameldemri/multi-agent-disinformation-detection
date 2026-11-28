@@ -1,6 +1,6 @@
-# Phase 05 — Agent 3 LLM
+# Agent 3 LLM Explainer — Plan
 
-Branch: `phase/05-agent3-llm`
+Branch: `feat/agent3-llm-explainer`
 
 Depends on: phase 04
 
@@ -35,4 +35,4 @@ PYTHONPATH=. python -m pytest tests/test_agent3_llm.py
 
 ## Next Step
 
-Phase 06: coordinator service.
+`feat/coordinator-api`.
