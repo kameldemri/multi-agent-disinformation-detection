@@ -22,8 +22,8 @@ Its purpose is to preserve enough context for another agent, or for us after con
 - Base branch before planning: `main`
 - Base commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`
 - Planning branch: `plan/agent3-decision-layer`
-- Current active branch: `feat/web-ui`
-- Final merged `main` commit: `3ccc516`.
+- Current active branch: `main`
+- Final merged `main` commit: `608e740`.
 - Planning and all earlier implementation phases are merged into `main` and pushed.
 
 ## Phase Status
@@ -38,8 +38,8 @@ Its purpose is to preserve enough context for another agent, or for us after con
 | Coordinator API | `feat/coordinator-api` | merged into `main`; pushed |
 | Docker runtime | `infra/docker-runtime` | merged into `main`; pushed |
 | End-to-end validation | `test/agent3-e2e-validation` | merged into `main`; pushed |
-| Local LLM | `infra/local-llm` | done locally with real model verified; awaiting confirmation |
-| Web UI | `feat/web-ui` | done locally; awaiting commit/confirmation |
+| Local LLM | `infra/local-llm` | merged into `main` at `608e740`; pushed |
+| Web UI | `feat/web-ui` | merged into `main` at `608e740`; pushed |
 
 ## Core Files
 

@@ -495,6 +495,10 @@ Verified:
 - Both E2E decisions returned `llm_status="used"` with local LLM enabled.
 - Stack was restored healthy; UI is available at `http://127.0.0.1:8000/`.
 
+## Final State
+
+`main` is at `608e740`; `origin/main`, `origin/infra/local-llm`, and `origin/feat/web-ui` were verified after push. Docker run instructions for Linux and Windows are in `README.md`.
+
 ## Current Next Action
 
-User confirms `feat/web-ui`; then commit this branch and merge/push when requested.
+None. The implementation is complete, merged into `main`, and pushed.

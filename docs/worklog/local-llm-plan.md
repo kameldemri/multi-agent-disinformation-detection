@@ -4,7 +4,7 @@ Branch: `infra/local-llm`
 
 Depends on: final merged system at `3ccc516`
 
-Status: done locally with real local-model verification; not pushed
+Status: merged into `main` at `608e740`; pushed
 
 ## Goal
 
@@ -94,4 +94,4 @@ Results:
 
 ## Next Step
 
-User confirmation, then merge `infra/local-llm` into `main`.
+None; this phase is complete and pushed.

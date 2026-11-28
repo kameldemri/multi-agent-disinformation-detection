@@ -4,7 +4,7 @@ Branch: `feat/web-ui`
 
 Depends on: `infra/local-llm` at `1a621a9`
 
-Status: done locally; not pushed
+Status: merged into `main` at `608e740`; pushed
 
 ## Goal
 
@@ -64,4 +64,4 @@ Results:
 
 ## Next Step
 
-User confirmation, then commit this branch and merge/push when requested.
+None; this phase is complete and pushed.
