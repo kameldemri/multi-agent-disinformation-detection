@@ -455,7 +455,11 @@ Verified:
 - Missing key still falls back when `LLM_ALLOW_NO_KEY=false`.
 - Default `docker compose config --quiet` passed.
 - `docker compose --profile llm config --quiet` passed.
-- No real model was downloaded and no real API call was made during verification.
+- Real `qwen2.5:0.5b-instruct` model pulled successfully into `ollama_models`.
+- Direct OpenAI-compatible request from Agent 3 to Ollama succeeded.
+- Initial `/analyze` real-model call fell back because the model returned plain text instead of JSON.
+- `services/agent3_service/llm.py` now accepts JSON or plain-text reason output; `tests/test_agent3_llm.py` covers the plain-text case.
+- Final real-model `/analyze` call returned `llm_status="used"` with reason: `The decision is to MODERATE. The evidence shows that both content and behavioral risks are below their configured thresholds.`
 
 ## Current Next Action
 

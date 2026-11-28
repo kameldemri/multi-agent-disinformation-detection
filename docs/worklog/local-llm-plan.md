@@ -4,7 +4,7 @@ Branch: `infra/local-llm`
 
 Depends on: final merged system at `3ccc516`
 
-Status: done locally; not pushed
+Status: done locally with real local-model verification; not pushed
 
 ## Goal
 
@@ -80,7 +80,12 @@ Results:
 - Missing key still falls back when `LLM_ALLOW_NO_KEY=false`.
 - Default Compose config validated.
 - LLM-profile Compose config validated.
-- No real model was downloaded and no real API call was made during verification.
+- Real `qwen2.5:0.5b-instruct` model pulled successfully into `ollama_models`.
+- Direct OpenAI-compatible request from the Agent 3 container to `http://llm:11434/v1/chat/completions` succeeded in about 1.06 seconds.
+- Initial real `/analyze` call returned `llm_status="fallback"` because the small model returned a plain-text reason instead of JSON.
+- `parse_reason` was updated to accept JSON objects, `Reason: ...` responses, and complete plain-text sentences; malformed short output still falls back.
+- Agent 3 was rebuilt with the parser fix.
+- Final real `/analyze` call returned `llm_status="used"` with reason: `The decision is to MODERATE. The evidence shows that both content and behavioral risks are below their configured thresholds.`
 
 ## Next Step
 

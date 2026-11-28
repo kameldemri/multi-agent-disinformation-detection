@@ -140,6 +140,15 @@ assert local_status == "used"
 assert local_client.url == "http://llm:11434/v1/chat/completions"
 assert "Authorization" not in local_client.headers
 
+plain_client = FakeClient("Reason: Both risks are below their configured thresholds.")
+plain_reason, plain_status = explain_result(
+    decision,
+    local_settings,
+    client=plain_client,
+)
+assert plain_reason == "Both risks are below their configured thresholds."
+assert plain_status == "used"
+
 try:
     parse_reason("not json")
 except LLMError:

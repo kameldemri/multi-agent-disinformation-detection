@@ -38,7 +38,7 @@ Its purpose is to preserve enough context for another agent, or for us after con
 | Coordinator API | `feat/coordinator-api` | merged into `main`; pushed |
 | Docker runtime | `infra/docker-runtime` | merged into `main`; pushed |
 | End-to-end validation | `test/agent3-e2e-validation` | merged into `main`; pushed |
-| Local LLM | `infra/local-llm` | done locally; awaiting confirmation |
+| Local LLM | `infra/local-llm` | done locally with real model verified; awaiting confirmation |
 
 ## Core Files
 

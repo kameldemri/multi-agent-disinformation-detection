@@ -198,6 +198,8 @@ docker compose --profile llm up -d --build
 
 The first start pulls the model into a named Docker volume. CPU inference works but is slower than GPU inference. If the model is not ready, Agent 3 falls back to the deterministic reason.
 
+Agent 3 accepts JSON (`{"reason": "..."}`) or plain-text reason responses from the model. This was verified locally with `qwen2.5:0.5b-instruct`: `/health` returned `{"status":"ok"}` and `/analyze` returned `llm_status: "used"` with a model-written reason.
+
 Successful local LLM explanations return `llm_status: "used"`. Offline mode returns `"disabled"`, and failed API/local calls return `"fallback"`.
 
 Do not commit `.env` or API keys.

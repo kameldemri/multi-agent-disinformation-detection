@@ -11,7 +11,7 @@ SYSTEM_PROMPT = """You are the explanation writer for Agent 3 in a multi-agent d
 
 You receive evidence from two independent agents and a final deterministic decision. Agent 1 reports fake_news_probability for article content. It measures the likelihood that content has fake-news characteristics. Agent 2 reports bot_probability for account behavior. It measures the likelihood of bot-like temporal behavior, not misinformation or malicious intent. final_risk_probability is the maximum of those two probabilities.
 
-Your only job is to write a concise reason that explains the already-decided outcome. Do not change the decision. Do not change final_risk_probability. Do not invent evidence. Do not add enforcement actions other than BAN or MODERATION. Use the policy_reason as the factual basis. Return only valid JSON with exactly one field: reason."""
+Your only job is to write a concise reason that explains the already-decided outcome. Do not change the decision. Do not change final_risk_probability. Do not invent evidence. Do not add enforcement actions other than BAN or MODERATION. Use the policy_reason as the factual basis. Return only the reason as plain text, with no labels or extra commentary."""
 
 
 class LLMError(Exception):
@@ -86,17 +86,25 @@ def parse_reason(content: str) -> str:
 
     try:
         data = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise LLMError("LLM response was not valid JSON") from exc
+    except json.JSONDecodeError:
+        if text.lower().startswith("reason:"):
+            reason = text[len("reason:") :].strip()
+        elif text.endswith((".", "!", "?")) and len(text.split()) >= 3:
+            reason = text
+        else:
+            raise LLMError("LLM response did not contain a usable reason")
+    else:
+        if not isinstance(data, dict):
+            raise LLMError("LLM response must be a JSON object")
+        reason = data.get("reason")
+        if not isinstance(reason, str):
+            raise LLMError("LLM response must contain a non-empty reason")
+        reason = reason.strip()
 
-    if not isinstance(data, dict):
-        raise LLMError("LLM response must be a JSON object")
-
-    reason = data.get("reason")
-    if not isinstance(reason, str) or not reason.strip():
+    if not reason:
         raise LLMError("LLM response must contain a non-empty reason")
 
-    return reason.strip()
+    return reason
 
 
 def _post_completion(client, url: str, headers: dict, body: dict) -> str:
