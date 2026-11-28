@@ -460,6 +460,10 @@ Verified:
 - Initial `/analyze` real-model call fell back because the model returned plain text instead of JSON.
 - `services/agent3_service/llm.py` now accepts JSON or plain-text reason output; `tests/test_agent3_llm.py` covers the plain-text case.
 - Final real-model `/analyze` call returned `llm_status="used"` with reason: `The decision is to MODERATE. The evidence shows that both content and behavioral risks are below their configured thresholds.`
+- Full E2E validation was repeated with the local LLM profile enabled.
+- `MODERATION` passed with thresholds `0.9`/`0.9`; `BAN` passed with thresholds `0.05`/`0.05`; both responses returned `llm_status="used"`.
+- Invalid inputs returned `422`; health checks, logs, response shape, evidence mapping, and risk formula were verified.
+- Stack was restored healthy for direct use.
 
 ## Current Next Action
 

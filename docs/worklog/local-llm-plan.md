@@ -86,6 +86,11 @@ Results:
 - `parse_reason` was updated to accept JSON objects, `Reason: ...` responses, and complete plain-text sentences; malformed short output still falls back.
 - Agent 3 was rebuilt with the parser fix.
 - Final real `/analyze` call returned `llm_status="used"` with reason: `The decision is to MODERATE. The evidence shows that both content and behavioral risks are below their configured thresholds.`
+- Full E2E validation was repeated with `COMPOSE_PROFILES=llm` and local LLM env vars.
+- `MODERATION` case passed with `BOT_THRESHOLD=0.9`, `FAKE_NEWS_THRESHOLD=0.9`, and `llm_status="used"`.
+- `BAN` case passed with `BOT_THRESHOLD=0.05`, `FAKE_NEWS_THRESHOLD=0.05`, and `llm_status="used"`.
+- All invalid-input cases returned `422`; health checks, container logs, response shape, evidence mapping, and risk formula were checked.
+- The default local-LLM stack was restored healthy after E2E validation.
 
 ## Next Step
 
