@@ -17,7 +17,7 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 - Base `main` commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`.
 - Base `main` message: `fix(deps): declare joblib and torch requirements`.
 - Planning branch: `plan/agent3-decision-layer`.
-- Current branch: `feat/agent2-service`.
+- Current branch: `feat/agent3-policy`.
 - Planning docs are committed locally but not pushed.
 - Documentation-only work is folded into the planning branch; no throwaway phase branch.
 - Implementation phases get professional branches such as `feat/agent1-service`.
@@ -307,6 +307,27 @@ Verified:
 - Timezone-naive timestamps return `422`.
 - Empty `user_id` returns `422`.
 
+## Agent 3 Policy Result
+
+New files:
+
+- `services/agent3_service/__init__.py`
+- `services/agent3_service/schemas.py`
+- `services/agent3_service/policy.py`
+- `services/agent3_service/app.py`
+- `tests/test_agent3_policy.py`
+
+Verified:
+
+- `compileall` passed.
+- Decision matrix passed for all 7 cases.
+- `final_risk_probability = max(bot_probability, fake_news_probability)` verified.
+- `GET /health` returned `{"status":"ok"}`.
+- `POST /decide` returned a structured BAN response.
+- Mismatched `user_id` returns `422`.
+- Probability outside `[0, 1]` returns `422`.
+- `llm_status` is `disabled` in this phase.
+
 ## Current Next Action
 
-User confirms `feat/agent2-service`; then create `feat/agent3-policy` and implement the deterministic Agent 3 core.
+User confirms `feat/agent3-policy`; then create `feat/agent3-llm-explainer` and add the optional LLM explanation layer.
