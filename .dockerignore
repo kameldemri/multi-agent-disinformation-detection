@@ -1,0 +1,17 @@
+.git
+.gitignore
+.venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+notebooks/
+docs/
+tests/
+data/raw/
+data/external/
+data/interim/
+data/processed/agent2/*
+!data/processed/agent2/temporal_scaler.npz
+*.log
+.env

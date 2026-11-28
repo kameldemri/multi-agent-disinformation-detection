@@ -17,7 +17,7 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 - Base `main` commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`.
 - Base `main` message: `fix(deps): declare joblib and torch requirements`.
 - Planning branch: `plan/agent3-decision-layer`.
-- Current branch: `feat/coordinator-api`.
+- Current branch: `infra/docker-runtime`.
 - Planning docs are committed locally but not pushed.
 - Documentation-only work is folded into the planning branch; no throwaway phase branch.
 - Implementation phases get professional branches such as `feat/agent1-service`.
@@ -49,7 +49,8 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 - LLM only explains the deterministic decision.
 - LLM cannot change `decision` or `final_risk_probability`.
 - LLM backend is optional API mode with offline fallback.
-- Docker structure: one service per agent plus one coordinator service.
+- Docker structure: one image, one service per agent plus one coordinator service.
+- Docker networking: internal network; only coordinator published to host.
 - Agent 2 input stays timestamp-only for now; no tweet text decision until further notice.
 
 ## Agent 1 Current API
@@ -242,6 +243,7 @@ Docker:
 - `AGENT2_URL`, default `http://agent2:8002`.
 - `AGENT3_URL`, default `http://agent3:8003`.
 - `COORDINATOR_TIMEOUT_SECONDS`, default `30`.
+- `COORDINATOR_PORT`, default `8000`.
 - `LOG_LEVEL`.
 
 ## Planning Verification Results
@@ -376,6 +378,29 @@ Verified:
   - `/analyze` returned agent 1, agent 2, and agent 3 outputs.
 - Internal agent URLs are not included in responses.
 
+## Docker Runtime Result
+
+New files:
+
+- `Dockerfile`
+- `.dockerignore`
+- `docker-compose.yml`
+- `.env.example`
+- `requirements-runtime.txt`
+
+Verified:
+
+- `docker compose config --quiet` passed.
+- `docker compose build` succeeded.
+- Image built with Python 3.12 slim and CPU torch `2.5.1+cpu`.
+- Four containers started from the same Dockerfile.
+- All four containers reported healthy.
+- Only coordinator published `0.0.0.0:8000->8000/tcp`.
+- `GET /health` returned `{"status":"ok"}`.
+- `POST /analyze` returned agent 1, agent 2, and agent 3 outputs.
+- Sample decision was `MODERATION` with risk `0.45518806499284004`.
+- `docker compose down` shut everything down cleanly.
+
 ## Current Next Action
 
-User confirms `feat/coordinator-api`; then create `infra/docker-runtime` and Dockerize the four services.
+User confirms `infra/docker-runtime`; then create `test/agent3-e2e-validation` and run full end-to-end validation.

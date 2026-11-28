@@ -1,0 +1,81 @@
+services:
+  agent1:
+    build: .
+    command: ["python", "-m", "uvicorn", "services.agent1_service.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      PORT: "8001"
+      FAKE_NEWS_THRESHOLD: "${FAKE_NEWS_THRESHOLD:-0.5}"
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  agent2:
+    build: .
+    command: ["python", "-m", "uvicorn", "services.agent2_service.app:app", "--host", "0.0.0.0", "--port", "8002"]
+    environment:
+      PORT: "8002"
+      BOT_THRESHOLD: "${BOT_THRESHOLD:-0.5}"
+    expose:
+      - "8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  agent3:
+    build: .
+    command: ["python", "-m", "uvicorn", "services.agent3_service.app:app", "--host", "0.0.0.0", "--port", "8003"]
+    environment:
+      PORT: "8003"
+      BOT_THRESHOLD: "${BOT_THRESHOLD:-0.5}"
+      FAKE_NEWS_THRESHOLD: "${FAKE_NEWS_THRESHOLD:-0.5}"
+      LLM_MODE: "${LLM_MODE:-offline}"
+      LLM_API_KEY: "${LLM_API_KEY:-}"
+      LLM_BASE_URL: "${LLM_BASE_URL:-https://api.openai.com/v1}"
+      LLM_MODEL: "${LLM_MODEL:-gpt-4o-mini}"
+      LLM_TIMEOUT_SECONDS: "${LLM_TIMEOUT_SECONDS:-10}"
+      LLM_MAX_TOKENS: "${LLM_MAX_TOKENS:-160}"
+    expose:
+      - "8003"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  coordinator:
+    build: .
+    command: ["python", "-m", "uvicorn", "services.coordinator_service.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      PORT: "8000"
+      AGENT1_URL: "http://agent1:8001"
+      AGENT2_URL: "http://agent2:8002"
+      AGENT3_URL: "http://agent3:8003"
+      COORDINATOR_TIMEOUT_SECONDS: "${COORDINATOR_TIMEOUT_SECONDS:-30}"
+    ports:
+      - "${COORDINATOR_PORT:-8000}:8000"
+    depends_on:
+      agent1:
+        condition: service_healthy
+      agent2:
+        condition: service_healthy
+      agent3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
