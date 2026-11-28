@@ -286,6 +286,30 @@ Successful local LLM explanations return `llm_status: "used"`. Offline mode retu
 
 Do not commit `.env` or API keys.
 
+## Bring Your Own API Key
+
+LLM explanations are optional. The default `LLM_MODE=offline` needs no API key and no model download. To use an OpenAI-compatible hosted API, edit `.env` before starting the stack:
+
+```env
+LLM_MODE=api
+LLM_API_KEY=your_api_key_here
+LLM_ALLOW_NO_KEY=false
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+```
+
+Then start or restart the default stack:
+
+```bash
+docker compose up --build -d
+```
+
+Do not use the `llm` profile for a hosted API; that profile is only for the local Ollama model. For another provider, change `LLM_BASE_URL` and `LLM_MODEL` to that provider's OpenAI-compatible values.
+
+The API key affects only the explanation text. Agent 3's decision and risk score stay deterministic. If the key is missing or invalid, Agent 3 falls back to the deterministic reason and returns `llm_status: "fallback"`. A successful hosted call returns `llm_status: "used"`.
+
+Never commit `.env` or API keys.
+
 ## Web UI
 
 After starting the stack, open:

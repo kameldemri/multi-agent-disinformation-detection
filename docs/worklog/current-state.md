@@ -497,7 +497,7 @@ Verified:
 
 ## Final State
 
-`main` is at `608e740`; `origin/main`, `origin/infra/local-llm`, and `origin/feat/web-ui` were verified after push. Docker run instructions for Linux and Windows are in `README.md`, including fresh-PC prerequisites, first-build internet access, `docker compose ps`, port override, and the optional host requirement for E2E validation.
+`main` is at `608e740`; `origin/main`, `origin/infra/local-llm`, and `origin/feat/web-ui` were verified after push. Docker run instructions for Linux and Windows are in `README.md`, including fresh-PC prerequisites, first-build internet access, `docker compose ps`, port override, the optional host requirement for E2E validation, local LLM activation, and BYO API-key setup.
 
 ## Current Next Action
 
