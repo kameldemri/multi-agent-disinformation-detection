@@ -2,7 +2,7 @@
 
 Branch: `plan/agent3-decision-layer`
 
-Status: done locally; awaiting user confirmation before implementation.
+Status: merged into `main` at `3ccc516`; pushed.
 
 ## Goal
 

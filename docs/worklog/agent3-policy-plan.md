@@ -4,7 +4,7 @@ Branch: `feat/agent3-policy`
 
 Depends on: `feat/agent2-service`
 
-Status: done locally; awaiting user confirmation.
+Status: merged into `main` at `3ccc516`; pushed.
 
 ## Goal
 

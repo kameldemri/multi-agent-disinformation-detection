@@ -178,6 +178,30 @@ docker compose down
 
 The coordinator is the only published container. Agent services communicate over the internal Docker network.
 
+## Local LLM
+
+The default stack stays free and offline. To enable a free local LLM explanation backend, set these values in `.env`:
+
+```env
+LLM_MODE=api
+LLM_ALLOW_NO_KEY=true
+LLM_BASE_URL=http://llm:11434/v1
+LLM_MODEL=qwen2.5:0.5b-instruct
+LLM_LOCAL_MODEL=qwen2.5:0.5b-instruct
+```
+
+Start with the optional profile:
+
+```bash
+docker compose --profile llm up -d --build
+```
+
+The first start pulls the model into a named Docker volume. CPU inference works but is slower than GPU inference. If the model is not ready, Agent 3 falls back to the deterministic reason.
+
+Successful local LLM explanations return `llm_status: "used"`. Offline mode returns `"disabled"`, and failed API/local calls return `"fallback"`.
+
+Do not commit `.env` or API keys.
+
 ## API
 
 The public endpoint is:
@@ -204,6 +228,6 @@ See [`data/README.md`](data/README.md) for data management rules.
 
 ## Project Status
 
-**Current phase:** Implementation complete; final validation passed.
+**Current phase:** Implementation complete; final validation passed; optional local LLM backend added.
 
-The FastAPI services, deterministic decision layer, optional LLM explanation, Docker Compose runtime, and end-to-end validation script are implemented.
+The FastAPI services, deterministic decision layer, optional API/local LLM explanation, Docker Compose runtime, and end-to-end validation script are implemented.

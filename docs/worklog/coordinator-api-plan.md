@@ -4,7 +4,7 @@ Branch: `feat/coordinator-api`
 
 Depends on: `feat/agent3-llm-explainer`
 
-Status: done locally; awaiting user confirmation.
+Status: merged into `main` at `3ccc516`; pushed.
 
 ## Goal
 

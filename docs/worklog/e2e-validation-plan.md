@@ -4,7 +4,7 @@ Branch: `test/agent3-e2e-validation`
 
 Depends on: phase 07
 
-Status: done locally; not pushed
+Status: merged into `main` at `3ccc516`; pushed
 
 ## Goal
 

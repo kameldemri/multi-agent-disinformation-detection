@@ -2,7 +2,7 @@
 
 Folded into planning branch: `plan/agent3-decision-layer`
 
-Status: done locally; awaiting user confirmation.
+Status: merged into `main` at `3ccc516`; pushed.
 
 ## Goal
 

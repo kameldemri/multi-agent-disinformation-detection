@@ -17,11 +17,12 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 - Base `main` commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`.
 - Base `main` message: `fix(deps): declare joblib and torch requirements`.
 - Planning branch: `plan/agent3-decision-layer`.
-- Current branch: `test/agent3-e2e-validation`.
-- Planning docs are committed locally but not pushed.
+- Current branch: `infra/local-llm`.
+- Final merged/pushed `main` commit: `3ccc516`.
+- Planning docs and all implementation phases through E2E validation are merged into `main` and pushed.
 - Documentation-only work is folded into the planning branch; no throwaway phase branch.
 - Implementation phases get professional branches such as `feat/agent1-service`.
-- Do not merge into `main` until the user confirms.
+- Do not merge a new phase into `main` until the user confirms.
 
 ## Completed Baseline
 
@@ -49,6 +50,8 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 - LLM only explains the deterministic decision.
 - LLM cannot change `decision` or `final_risk_probability`.
 - LLM backend is optional API mode with offline fallback.
+- No shared/public API key will be committed; users bring their own key or use the free local model.
+- Local LLM is an optional Compose profile, not part of the default stack.
 - Docker structure: one image, one service per agent plus one coordinator service.
 - Docker networking: internal network; only coordinator published to host.
 - Agent 2 input stays timestamp-only for now; no tweet text decision until further notice.
@@ -429,6 +432,31 @@ Verified:
 
 Article-only and account-only public flows are not supported; `/analyze` requires both text and account evidence.
 
+## Local LLM Result
+
+Changed files:
+
+- `services/agent3_service/llm.py`
+- `tests/test_agent3_llm.py`
+- `docker-compose.yml`
+- `.env.example`
+- `README.md`
+
+New file:
+
+- `docs/worklog/local-llm-plan.md`
+
+Verified:
+
+- `compileall` passed for `services` and `tests`.
+- All existing service test scripts passed locally.
+- Local no-key API mode passed with a fake client.
+- No `Authorization` header is sent when `LLM_ALLOW_NO_KEY=true` and no key is configured.
+- Missing key still falls back when `LLM_ALLOW_NO_KEY=false`.
+- Default `docker compose config --quiet` passed.
+- `docker compose --profile llm config --quiet` passed.
+- No real model was downloaded and no real API call was made during verification.
+
 ## Current Next Action
 
-User confirms `test/agent3-e2e-validation`; then merge implementation branches into `main` in order.
+User confirms `infra/local-llm`; then merge it into `main` and push.

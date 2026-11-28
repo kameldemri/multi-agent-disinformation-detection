@@ -26,6 +26,7 @@ class LLMSettings:
     model: str
     timeout: float
     max_tokens: int
+    allow_no_key: bool = False
 
 
 def load_settings() -> LLMSettings:
@@ -48,6 +49,12 @@ def load_settings() -> LLMSettings:
         raise RuntimeError("LLM_MAX_TOKENS must be positive")
 
     api_key = os.getenv("LLM_API_KEY", "").strip() or None
+    allow_no_key = os.getenv("LLM_ALLOW_NO_KEY", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "y",
+    }
 
     return LLMSettings(
         mode=mode,
@@ -56,6 +63,7 @@ def load_settings() -> LLMSettings:
         model=os.getenv("LLM_MODEL", "gpt-4o-mini").strip(),
         timeout=timeout,
         max_tokens=max_tokens,
+        allow_no_key=allow_no_key,
     )
 
 
@@ -106,14 +114,13 @@ def request_reason(
 ) -> str:
     if settings.mode != "api":
         raise LLMError("LLM mode is not api")
-    if not settings.api_key:
+    if not settings.api_key and not settings.allow_no_key:
         raise LLMError("LLM API key is missing")
 
     url = f"{settings.base_url.rstrip('/')}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {settings.api_key}",
-        "Content-Type": "application/json",
-    }
+    headers = {"Content-Type": "application/json"}
+    if settings.api_key:
+        headers["Authorization"] = f"Bearer {settings.api_key}"
     body = {
         "model": settings.model,
         "messages": [

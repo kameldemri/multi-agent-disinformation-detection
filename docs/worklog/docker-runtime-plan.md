@@ -4,7 +4,7 @@ Branch: `infra/docker-runtime`
 
 Depends on: phase 06
 
-Status: done locally; not pushed
+Status: merged into `main` at `3ccc516`; pushed
 
 ## Goal
 

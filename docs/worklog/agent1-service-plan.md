@@ -4,7 +4,7 @@ Branch: `feat/agent1-service`
 
 Depends on: `plan/agent3-decision-layer`
 
-Status: done locally; awaiting user confirmation.
+Status: merged into `main` at `3ccc516`; pushed.
 
 ## Goal
 

@@ -120,6 +120,26 @@ fallback_reason, fallback_status = explain_result(
 assert fallback_reason == decision.reason
 assert fallback_status == "fallback"
 
+local_settings = LLMSettings(
+    mode="api",
+    api_key=None,
+    base_url="http://llm:11434/v1",
+    model="local-model",
+    timeout=1.0,
+    max_tokens=50,
+    allow_no_key=True,
+)
+local_client = FakeClient('{"reason": "Local explanation."}')
+local_reason, local_status = explain_result(
+    decision,
+    local_settings,
+    client=local_client,
+)
+assert local_reason == "Local explanation."
+assert local_status == "used"
+assert local_client.url == "http://llm:11434/v1/chat/completions"
+assert "Authorization" not in local_client.headers
+
 try:
     parse_reason("not json")
 except LLMError:
