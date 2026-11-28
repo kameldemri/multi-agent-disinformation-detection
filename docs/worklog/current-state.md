@@ -17,7 +17,7 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 - Base `main` commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`.
 - Base `main` message: `fix(deps): declare joblib and torch requirements`.
 - Planning branch: `plan/agent3-decision-layer`.
-- Current branch: `infra/docker-runtime`.
+- Current branch: `test/agent3-e2e-validation`.
 - Planning docs are committed locally but not pushed.
 - Documentation-only work is folded into the planning branch; no throwaway phase branch.
 - Implementation phases get professional branches such as `feat/agent1-service`.
@@ -401,6 +401,34 @@ Verified:
 - Sample decision was `MODERATION` with risk `0.45518806499284004`.
 - `docker compose down` shut everything down cleanly.
 
+## End-to-End Validation Result
+
+New files:
+
+- `tests/e2e_validation.py`
+- `scripts/e2e_validation.sh`
+
+Verified:
+
+- `compileall` passed for `services` and `tests`.
+- All existing service test scripts passed locally.
+- Docker Compose scenario with `BOT_THRESHOLD=0.9` and `FAKE_NEWS_THRESHOLD=0.9` returned `MODERATION`.
+- Docker Compose scenario with `BOT_THRESHOLD=0.05` and `FAKE_NEWS_THRESHOLD=0.05` returned `BAN`.
+- Threshold-driven `predicted_label` values matched configured thresholds.
+- `final_risk_probability` matched `max(fake_news_probability, bot_probability)`.
+- Invalid cases returned `422`:
+  - blank text
+  - missing text
+  - empty `user_id`
+  - fewer than 3 tweets
+  - timezone-naive timestamp
+- Response shape, evidence mapping, user id, reason, and `llm_status` were checked.
+- Internal agent URLs were not exposed in public responses.
+- Docker healthchecks and logs were checked in both scenarios.
+- Both scenarios shut down cleanly.
+
+Article-only and account-only public flows are not supported; `/analyze` requires both text and account evidence.
+
 ## Current Next Action
 
-User confirms `infra/docker-runtime`; then create `test/agent3-e2e-validation` and run full end-to-end validation.
+User confirms `test/agent3-e2e-validation`; then merge implementation branches into `main` in order.

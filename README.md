@@ -12,24 +12,22 @@ This project is developed as part of a university machine learning project.
 
 - Analyze social media content to identify suspicious or misleading content.
 - Examine temporal account behavior to detect patterns associated with automated activity.
-- Analyze coordination patterns between accounts.
-- Combine multiple sources of evidence to estimate campaign risk.
+- Combine both evidence sources into a single account-level risk decision.
 - Produce interpretable predictions and moderation recommendations.
+- Package the full stack so it runs anywhere with Docker Compose.
 
 ## Architecture
 
-The system consists of three machine learning agents and a shared coordination layer.
+The implemented system consists of two trained machine learning agents, one deterministic decision agent, and one public coordination service.
 
 | Component | Responsibility | Technique |
 |---|---|---|
-| Agent 1 | Content analysis | Naive Bayes |
-| Agent 2 | Temporal behavior analysis | Recurrent Neural Network (RNN/LSTM) |
-| Coordination Layer | Cross-account analysis and coordination features | Python-based analysis |
-| Agent 3 | Evidence integration and risk classification | Logistic Regression |
+| Agent 1 | Fake-news content analysis | Naive Bayes |
+| Agent 2 | Bot-like temporal behavior analysis | BiGRU recurrent neural network |
+| Agent 3 | Final decision and explanation | Deterministic policy plus optional LLM explanation |
+| Coordinator | Public API orchestration | FastAPI HTTP service |
 
-The coordination layer is shared infrastructure, not a fourth machine learning agent.
-
-Each agent has a separate responsibility and will be developed independently before integration.
+Agent 3 uses only `fake_news_probability` and `bot_probability` for its decision. The LLM can only write the explanation; it cannot change the decision or risk score.
 
 ## Repository Structure
 
@@ -37,23 +35,26 @@ Each agent has a separate responsibility and will be developed independently bef
 agents/
     agent1_naive_bayes/
     agent2_rnn/
-    agent3_logistic_regression/
-coordination/
 data/
     raw/
     processed/
     samples/
 docs/
+services/
+    agent1_service/
+    agent2_service/
+    agent3_service/
+    coordinator_service/
+scripts/
 tests/
 ```
 
-- `agents/`: Individual machine learning agents.
-- `coordination/`: Shared logic for analyzing relationships and coordination between accounts.
-- `data/`: Dataset instructions, local datasets, and small sample files.
-- `docs/`: Project documentation and architectural decisions.
-- `tests/`: Integration and system-level tests.
-
-Each agent directory contains its own source code, tests, and documentation.
+- `agents/`: Trained model code and artifacts.
+- `data/`: Dataset instructions, processed features, and small sample files.
+- `docs/`: Project documentation and informal worklog.
+- `services/`: FastAPI services for agents and coordination.
+- `scripts/`: Repeatable validation scripts.
+- `tests/`: Service and end-to-end tests.
 
 ## Datasets
 
@@ -69,13 +70,14 @@ See [`docs/dataset-notes.md`](docs/dataset-notes.md) for further details.
 ## Development Workflow
 
 1. Agree on the interfaces and responsibilities of each agent.
-2. Inspect and prepare the datasets.
-3. Develop and evaluate each agent independently.
-4. Implement the coordination layer.
-5. Integrate the agents and train/evaluate the final classifier.
-6. Run integration tests and prepare the demonstration.
+2. Train and evaluate each model independently.
+3. Wrap each model in an internal HTTP service.
+4. Implement the deterministic decision layer and optional explanation.
+5. Expose the system through the coordinator API.
+6. Package all services with Docker Compose.
+7. Run service and end-to-end validation.
 
-Development is organized through Git and GitHub. Each team member should work on their assigned component and communicate interface changes before integration.
+Development is organized through Git and GitHub. Interface changes must be communicated before implementation.
 
 ## Development Setup
 
@@ -142,9 +144,59 @@ It should report Python 3.12.x.
 - Do not commit the `.venv/` directory.
 - If you add or modify dependencies, update `requirements.txt` and communicate the changes to the team.
 
+## Docker Quickstart
+
+Copy the example environment file if you want to override thresholds or enable LLM explanations:
+
+```bash
+cp .env.example .env
+```
+
+Build and start the stack:
+
+```bash
+docker compose up --build -d
+```
+
+Check the public API:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Run the full end-to-end validation:
+
+```bash
+PYTHON_BIN=python bash scripts/e2e_validation.sh
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+The coordinator is the only published container. Agent services communicate over the internal Docker network.
+
+## API
+
+The public endpoint is:
+
+```text
+POST /analyze
+```
+
+It accepts one text sample and one account's temporal tweet data, then returns Agent 1, Agent 2, and Agent 3 outputs. Article-only and account-only public flows are not supported.
+
 ## Data and Model Artifacts
 
-Raw datasets, processed datasets, and trained model artifacts are not committed to the repository by default.
+Raw datasets and large processed files are not committed by default.
+
+Trained inference artifacts are tracked so the services can run without retraining or downloading data:
+
+- `agents/agent1_naive_bayes/models/nb_fake_news.joblib`
+- `agents/agent2_rnn/artifacts/best_bigru_safe.pt`
+- `data/processed/agent2/temporal_scaler.npz`
 
 Small, permitted sample files may be stored in `data/samples/` for testing and demonstration.
 
@@ -152,6 +204,6 @@ See [`data/README.md`](data/README.md) for data management rules.
 
 ## Project Status
 
-**Current phase:** Architecture, documentation, dataset investigation, and team coordination.
+**Current phase:** Implementation complete; final validation passed.
 
-Model implementation and integration will follow once the interfaces and data requirements are agreed upon.
+The FastAPI services, deterministic decision layer, optional LLM explanation, Docker Compose runtime, and end-to-end validation script are implemented.
