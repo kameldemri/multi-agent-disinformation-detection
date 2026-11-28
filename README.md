@@ -260,6 +260,68 @@ This works the same in Linux shell and Windows PowerShell. The first start pulls
 
 The coordinator is the only published container. Agent services communicate over the internal Docker network.
 
+## Run Without Docker (Native Python)
+
+Docker is recommended, but it is not required. A fresh PC needs Python 3.12, Git, and internet access for the first pip installs. Use a virtual environment.
+
+**Linux / macOS:**
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-runtime.txt
+python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch==2.5.1+cpu"
+```
+
+**Windows PowerShell:**
+
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-runtime.txt
+python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch==2.5.1+cpu"
+```
+
+Then open four terminals from the repository root with the virtual environment activated. Start Agent 1, Agent 2, and Agent 3 first, then start the coordinator.
+
+**Linux / macOS:**
+
+```bash
+PYTHONPATH=. python -m uvicorn services.agent1_service.app:app --host 127.0.0.1 --port 8001
+PYTHONPATH=. python -m uvicorn services.agent2_service.app:app --host 127.0.0.1 --port 8002
+PYTHONPATH=. python -m uvicorn services.agent3_service.app:app --host 127.0.0.1 --port 8003
+PYTHONPATH=. AGENT1_URL=http://127.0.0.1:8001 AGENT2_URL=http://127.0.0.1:8002 AGENT3_URL=http://127.0.0.1:8003 python -m uvicorn services.coordinator_service.app:app --host 0.0.0.0 --port 8000
+```
+
+**Windows PowerShell:**
+
+```powershell
+$env:PYTHONPATH="."
+python -m uvicorn services.agent1_service.app:app --host 127.0.0.1 --port 8001
+```
+
+```powershell
+$env:PYTHONPATH="."
+python -m uvicorn services.agent2_service.app:app --host 127.0.0.1 --port 8002
+```
+
+```powershell
+$env:PYTHONPATH="."
+python -m uvicorn services.agent3_service.app:app --host 127.0.0.1 --port 8003
+```
+
+```powershell
+$env:PYTHONPATH="."
+$env:AGENT1_URL="http://127.0.0.1:8001"
+$env:AGENT2_URL="http://127.0.0.1:8002"
+$env:AGENT3_URL="http://127.0.0.1:8003"
+python -m uvicorn services.coordinator_service.app:app --host 0.0.0.0 --port 8000
+```
+
+Open the same UI at `http://localhost:8000/`. Stop each service with `Ctrl+C`.
+
+The default native run uses offline LLM mode with no key or model download. For hosted API explanations, set `LLM_MODE=api` and `LLM_API_KEY` in the Agent 3 terminal before starting it. For local Ollama, install Ollama on the host, pull the model, and set `LLM_BASE_URL=http://127.0.0.1:11434/v1` plus `LLM_ALLOW_NO_KEY=true` in the Agent 3 terminal.
+
 ## Local LLM
 
 The default stack stays free and offline. To enable a free local LLM explanation backend, set these values in `.env`:
