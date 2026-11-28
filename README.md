@@ -148,7 +148,7 @@ It should report Python 3.12.x.
 
 ## Docker Quickstart
 
-Everything needed to run the app is Dockerized: runtime dependencies, trained model artifacts, FastAPI services, and the browser UI. Docker Compose builds one application image and starts four containers by default. The optional `llm` profile adds Ollama as a fifth service.
+Everything needed to run the app is Dockerized: runtime dependencies, trained model artifacts, FastAPI services, and the browser UI. Docker Compose builds one application image and starts four containers by default. The optional `llm` profile adds Ollama as a fifth service. On a fresh PC, the first build needs internet access to pull Docker images and install dependencies; after that, the default stack runs offline.
 
 ### Linux
 
@@ -157,8 +157,9 @@ Prerequisites:
 - Docker Engine
 - Docker Compose plugin
 - Git
+- Internet access for the first build
 
-Run from the repository root:
+Clone and start:
 
 ```bash
 git clone https://github.com/kameldemri/multi-agent-disinformation-detection.git
@@ -177,13 +178,16 @@ Check the API:
 
 ```bash
 curl http://localhost:8000/health
+docker compose ps
 ```
 
-Run the full end-to-end validation:
+Optional validation, which requires Python 3.12 with `httpx` installed on the host:
 
 ```bash
 PYTHON_BIN=python bash scripts/e2e_validation.sh
 ```
+
+The Docker run above does not require a local Python installation.
 
 Stop the stack:
 
@@ -198,8 +202,9 @@ Prerequisites:
 - Docker Desktop
 - Git for Windows
 - Linux containers enabled in Docker Desktop
+- Internet access for the first build
 
-Run in PowerShell from the repository root:
+Run in PowerShell:
 
 ```powershell
 git clone https://github.com/kameldemri/multi-agent-disinformation-detection.git
@@ -218,6 +223,7 @@ Check the API:
 
 ```powershell
 Invoke-RestMethod http://localhost:8000/health | ConvertTo-Json
+docker compose ps
 ```
 
 Stop the stack:
@@ -228,7 +234,9 @@ docker compose down
 
 If `docker compose` is not recognized, enable Docker Compose v2 in Docker Desktop. On older installs, use `docker-compose` instead.
 
-For the E2E script on Windows, run it from WSL or Git Bash using the Linux command above.
+If port `8000` is already in use, set `COORDINATOR_PORT` in `.env` to another port and use that port in the UI/API URL.
+
+The Docker run above does not require a local Python installation. For optional end-to-end validation, install Python 3.12 with `httpx`, then run `PYTHON_BIN=python bash scripts/e2e_validation.sh` from WSL or Git Bash.
 
 ### Optional Local LLM
 
