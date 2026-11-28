@@ -20,13 +20,15 @@ Its purpose is to preserve enough context for another agent, or for us after con
 - Base branch before planning: `main`
 - Base commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`
 - Planning branch: `phase/00-planning`
+- Planning commit: `b1fa268` locally; remote push pending
+- Current active branch: `phase/01-contracts`
 
 ## Phase Status
 
 | Phase | Branch | Status |
 | --- | --- | --- |
-| 00 Planning | `phase/00-planning` | in progress |
-| 01 Contracts | `phase/01-contracts` | planned |
+| 00 Planning | `phase/00-planning` | done locally; push pending |
+| 01 Contracts | `phase/01-contracts` | done locally; push pending |
 | 02 Agent 1 service | `phase/02-agent1-service` | planned |
 | 03 Agent 2 service | `phase/03-agent2-service` | planned |
 | 04 Agent 3 policy | `phase/04-agent3-policy` | planned |

@@ -16,6 +16,9 @@ Then expose everything through a coordination layer and Dockerize it so it runs 
 
 - Base `main` commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`.
 - Base `main` message: `fix(deps): declare joblib and torch requirements`.
+- Planning branch: `phase/00-planning`, local commit `b1fa268`.
+- Current branch: `phase/01-contracts`.
+- Remote push failed with GitHub port 443 network error; branches need pushing when reachable.
 - Work happens one phase per branch.
 - Do not merge into `main` until the user confirms.
 
@@ -235,6 +238,25 @@ Docker:
 - `LLM_TIMEOUT_SECONDS`.
 - `LOG_LEVEL`.
 
+## Phase 1 Verification Results
+
+Commands run on `phase/01-contracts`:
+
+```bash
+PYTHONPATH=. .venv/bin/python -c "from agents.agent1_naive_bayes.src.predict import score_text; print(score_text('The election was rigged and officials hid the truth'))"
+PYTHONPATH=. .venv/bin/python -c "from agents.agent2_rnn.src.predict import predict_accounts; print(predict_accounts([{'user_id':'account_001','tweets':[{'tweet_id':'101','created_at':'2026-11-20T10:30:00Z'},{'tweet_id':'102','created_at':'2026-11-20T10:35:00Z'},{'tweet_id':'103','created_at':'2026-11-20T11:00:00Z'}]}]))"
+```
+
+Results:
+
+- Agent 1 raw score: `0.45518806499284004`.
+- Agent 2 raw output:
+  ```python
+  [{'user_id': 'account_001', 'bot_probability': 0.1048131138086319, 'predicted_label': 0}]
+  ```
+
+No application code changed in Phase 1.
+
 ## Current Next Action
 
-Phase 1: freeze and document exact contracts on branch `phase/01-contracts`, then stop for user confirmation.
+User confirms `phase/01-contracts`; then create `phase/02-agent1-service` and implement the Agent 1 service.
