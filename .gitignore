@@ -40,6 +40,11 @@ data/raw/*/*
 data/processed/*
 !data/processed/.gitkeep
 
+# Agent 2 inference scaler
+!data/processed/agent2/
+data/processed/agent2/*
+!data/processed/agent2/temporal_scaler.npz
+
 # Dataset file formats
 *.csv
 *.parquet
@@ -52,6 +57,7 @@ data/processed/*
 *.pkl
 *.joblib
 *.pt
+!agents/agent2_rnn/artifacts/best_bigru_safe.pt
 *.pth
 *.h5
 *.keras
