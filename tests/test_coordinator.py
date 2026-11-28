@@ -98,6 +98,19 @@ health_response = client.get("/health")
 assert health_response.status_code == 200
 assert health_response.json() == {"status": "ok"}
 
+index_response = client.get("/")
+assert index_response.status_code == 200
+assert "Disinformation Detection Console" in index_response.text
+assert "text/html" in index_response.headers["content-type"]
+
+script_response = client.get("/static/app.js")
+assert script_response.status_code == 200
+assert 'fetch("/analyze"' in script_response.text
+
+style_response = client.get("/static/styles.css")
+assert style_response.status_code == 200
+assert ".decision.ban" in style_response.text
+
 invalid_response = client.post(
     "/analyze",
     json={

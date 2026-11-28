@@ -53,6 +53,14 @@ def main() -> None:
     with httpx.Client(base_url=BASE_URL, timeout=10.0) as client:
         wait_for_health(client)
 
+        index_response = client.get("/")
+        assert index_response.status_code == 200, index_response.text
+        assert "Disinformation Detection Console" in index_response.text
+
+        script_response = client.get("/static/app.js")
+        assert script_response.status_code == 200, script_response.text
+        assert 'fetch("/analyze"' in script_response.text
+
         response = client.post("/analyze", json=valid_payload())
         assert response.status_code == 200, response.text
         payload = response.json()

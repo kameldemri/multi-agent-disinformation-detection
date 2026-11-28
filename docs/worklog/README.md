@@ -22,7 +22,7 @@ Its purpose is to preserve enough context for another agent, or for us after con
 - Base branch before planning: `main`
 - Base commit: `cf8d8259ee52b07c0f1b6fa210dd0517b5f4a6b3`
 - Planning branch: `plan/agent3-decision-layer`
-- Current active branch: `infra/local-llm`
+- Current active branch: `feat/web-ui`
 - Final merged `main` commit: `3ccc516`.
 - Planning and all earlier implementation phases are merged into `main` and pushed.
 
@@ -39,13 +39,14 @@ Its purpose is to preserve enough context for another agent, or for us after con
 | Docker runtime | `infra/docker-runtime` | merged into `main`; pushed |
 | End-to-end validation | `test/agent3-e2e-validation` | merged into `main`; pushed |
 | Local LLM | `infra/local-llm` | done locally with real model verified; awaiting confirmation |
+| Web UI | `feat/web-ui` | done locally; awaiting commit/confirmation |
 
 ## Core Files
 
 - `current-state.md`: living snapshot of decisions, state, contracts, and next action.
 - `agent3-decision-layer-plan.md`: complete implementation plan.
 - `agent3-contracts.md`: frozen contracts from planning.
-- `agent1-service-plan.md`, `agent2-service-plan.md`, `agent3-policy-plan.md`, `agent3-llm-explainer-plan.md`, `coordinator-api-plan.md`, `docker-runtime-plan.md`, `e2e-validation-plan.md`, `local-llm-plan.md`: per-phase plans.
+- `agent1-service-plan.md`, `agent2-service-plan.md`, `agent3-policy-plan.md`, `agent3-llm-explainer-plan.md`, `coordinator-api-plan.md`, `docker-runtime-plan.md`, `e2e-validation-plan.md`, `local-llm-plan.md`, `web-ui-plan.md`: per-phase plans.
 
 ## Context Recovery Commands
 

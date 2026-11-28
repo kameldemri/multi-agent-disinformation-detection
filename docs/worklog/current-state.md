@@ -465,6 +465,36 @@ Verified:
 - Invalid inputs returned `422`; health checks, logs, response shape, evidence mapping, and risk formula were verified.
 - Stack was restored healthy for direct use.
 
+## Web UI Result
+
+Branch: `feat/web-ui`, based on `infra/local-llm` at `1a621a9`.
+
+Changed files:
+
+- `services/coordinator_service/app.py`
+- `tests/test_coordinator.py`
+- `tests/e2e_validation.py`
+- `README.md`
+- `docs/worklog/README.md`
+
+New files:
+
+- `web/index.html`
+- `web/styles.css`
+- `web/app.js`
+- `docs/worklog/web-ui-plan.md`
+
+Verified:
+
+- `compileall` passed for `services` and `tests`.
+- All service test scripts passed locally.
+- Coordinator tests cover `/`, `/static/app.js`, and `/static/styles.css`.
+- `GET /` returned `200 text/html`; static JS/CSS returned `200` with correct content types.
+- E2E validation with UI checks passed for `MODERATION` at thresholds `0.9`/`0.9`.
+- E2E validation with UI checks passed for `BAN` at thresholds `0.05`/`0.05`.
+- Both E2E decisions returned `llm_status="used"` with local LLM enabled.
+- Stack was restored healthy; UI is available at `http://127.0.0.1:8000/`.
+
 ## Current Next Action
 
-User confirms `infra/local-llm`; then merge it into `main` and push.
+User confirms `feat/web-ui`; then commit this branch and merge/push when requested.

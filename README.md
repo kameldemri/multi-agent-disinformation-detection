@@ -47,6 +47,7 @@ services/
     coordinator_service/
 scripts/
 tests/
+web/
 ```
 
 - `agents/`: Trained model code and artifacts.
@@ -55,6 +56,7 @@ tests/
 - `services/`: FastAPI services for agents and coordination.
 - `scripts/`: Repeatable validation scripts.
 - `tests/`: Service and end-to-end tests.
+- `web/`: Dependency-free browser UI served by the coordinator.
 
 ## Datasets
 
@@ -146,19 +148,32 @@ It should report Python 3.12.x.
 
 ## Docker Quickstart
 
-Copy the example environment file if you want to override thresholds or enable LLM explanations:
+Everything needed to run the app is Dockerized: runtime dependencies, trained model artifacts, FastAPI services, and the browser UI. Docker Compose builds one application image and starts four containers by default. The optional `llm` profile adds Ollama as a fifth service.
+
+### Linux
+
+Prerequisites:
+
+- Docker Engine
+- Docker Compose plugin
+- Git
+
+Run from the repository root:
 
 ```bash
+git clone https://github.com/kameldemri/multi-agent-disinformation-detection.git
+cd multi-agent-disinformation-detection
 cp .env.example .env
-```
-
-Build and start the stack:
-
-```bash
 docker compose up --build -d
 ```
 
-Check the public API:
+Open the UI:
+
+```text
+http://localhost:8000/
+```
+
+Check the API:
 
 ```bash
 curl http://localhost:8000/health
@@ -175,6 +190,65 @@ Stop the stack:
 ```bash
 docker compose down
 ```
+
+### Windows
+
+Prerequisites:
+
+- Docker Desktop
+- Git for Windows
+- Linux containers enabled in Docker Desktop
+
+Run in PowerShell from the repository root:
+
+```powershell
+git clone https://github.com/kameldemri/multi-agent-disinformation-detection.git
+cd multi-agent-disinformation-detection
+Copy-Item .env.example .env
+docker compose up --build -d
+```
+
+Open the UI:
+
+```text
+http://localhost:8000/
+```
+
+Check the API:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health | ConvertTo-Json
+```
+
+Stop the stack:
+
+```powershell
+docker compose down
+```
+
+If `docker compose` is not recognized, enable Docker Compose v2 in Docker Desktop. On older installs, use `docker-compose` instead.
+
+For the E2E script on Windows, run it from WSL or Git Bash using the Linux command above.
+
+### Optional Local LLM
+
+The default stack is free and offline. To enable the local Ollama model, edit `.env` before starting:
+
+```env
+LLM_MODE=api
+LLM_ALLOW_NO_KEY=true
+LLM_BASE_URL=http://llm:11434/v1
+LLM_MODEL=qwen2.5:0.5b-instruct
+LLM_LOCAL_MODEL=qwen2.5:0.5b-instruct
+```
+
+Then start the optional profile:
+
+```bash
+docker compose --profile llm up --build -d
+```
+
+This works the same in Linux shell and Windows PowerShell. The first start pulls the Ollama image and the `qwen2.5:0.5b-instruct` model, so it needs internet once. After that, the model is stored in the `ollama_models` Docker volume and can be reused offline.
 
 The coordinator is the only published container. Agent services communicate over the internal Docker network.
 
@@ -204,6 +278,18 @@ Successful local LLM explanations return `llm_status: "used"`. Offline mode retu
 
 Do not commit `.env` or API keys.
 
+## Web UI
+
+After starting the stack, open:
+
+```text
+http://127.0.0.1:8000/
+```
+
+The UI submits to the same `POST /analyze` endpoint used by API clients. Enter text, an optional title, a user ID, and at least three ISO-8601 tweet timestamps, one per line. The **Use sample** button fills a ready-to-run example.
+
+The result panel shows the final decision, final/content/behavior risk, agent labels, the explanation, the LLM status, and the raw JSON response. It works with offline mode, BYO API key mode, and the optional local LLM profile.
+
 ## API
 
 The public endpoint is:
@@ -230,6 +316,6 @@ See [`data/README.md`](data/README.md) for data management rules.
 
 ## Project Status
 
-**Current phase:** Implementation complete; final validation passed; optional local LLM backend added.
+**Current phase:** Implementation complete; final validation passed; optional local LLM backend and browser UI added.
 
-The FastAPI services, deterministic decision layer, optional API/local LLM explanation, Docker Compose runtime, and end-to-end validation script are implemented.
+The FastAPI services, deterministic decision layer, optional API/local LLM explanation, Docker Compose runtime, browser UI, and end-to-end validation script are implemented.

@@ -1,12 +1,18 @@
 import os
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from services.coordinator_service.client import load_settings, post_json
 from services.coordinator_service.schemas import AnalyzeRequest, AnalyzeResponse
 
+WEB_DIR = Path(__file__).resolve().parents[2] / "web"
+
 app = FastAPI(title="Coordinator API", version="1.0.0")
+app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 SETTINGS = load_settings()
 
 
@@ -45,6 +51,11 @@ def analyze_request(request: AnalyzeRequest, client=None) -> AnalyzeResponse:
         agent_2=agent_2,
         agent_3=agent_3,
     )
+
+
+@app.get("/", include_in_schema=False)
+def index() -> FileResponse:
+    return FileResponse(WEB_DIR / "index.html")
 
 
 @app.get("/health")

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Disinformation Detection Console</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Multi-agent analysis</p>
+      <h1>Disinformation Detection Console</h1>
+    </div>
+    <div id="health" class="health unknown">Checking API...</div>
+  </header>
+
+  <main class="layout">
+    <section class="card">
+      <h2>Submit evidence</h2>
+      <p class="muted">Provide one text sample and one account's temporal activity. Both are required.</p>
+
+      <form id="analyze-form">
+        <label>
+          <span>Article or post text</span>
+          <textarea id="text" name="text" rows="7" required placeholder="Paste the content to evaluate..."></textarea>
+        </label>
+
+        <label>
+          <span>Title <em>optional</em></span>
+          <input id="title" name="title" type="text" placeholder="Optional headline">
+        </label>
+
+        <div class="grid">
+          <label>
+            <span>User ID</span>
+            <input id="user-id" name="user-id" type="text" value="account_001" required>
+          </label>
+          <label>
+            <span>Tweet IDs</span>
+            <input id="tweet-prefix" name="tweet-prefix" type="text" value="tweet" placeholder="tweet">
+          </label>
+        </div>
+
+        <label>
+          <span>Tweet timestamps</span>
+          <textarea id="tweets" name="tweets" rows="5" required placeholder="2026-11-20T10:30:00Z one per line"></textarea>
+        </label>
+        <p class="hint">One ISO-8601 timestamp per line. At least three are required.</p>
+
+        <div class="actions">
+          <button id="sample-button" type="button" class="secondary">Use sample</button>
+          <button id="clear-button" type="button" class="ghost">Clear</button>
+          <button id="submit-button" type="submit">Analyze</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card results">
+      <div class="section-heading">
+        <h2>Result</h2>
+        <span id="llm-badge" class="badge">Not run</span>
+      </div>
+
+      <div id="error" class="error" role="alert" hidden></div>
+      <div id="result" class="result-empty">Submit evidence to see the agent outputs.</div>
+    </section>
+  </main>
+
+  <footer>
+    Decisions and risk scores come from deterministic agents. The LLM, when enabled, only rewrites the explanation.
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
